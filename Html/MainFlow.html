@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Mermaid Test</title>
+    <script src="../Scripts/mermaid.min.js"></script>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            securityLevel: 'loose',
+            logLevel: 'debug'
+        });
+    </script>
+</head>
+<body>
+    <div class="mermaid">
+        flowchart TD
+        A[开始] --> B[扫描盒码]
+        B --> C[请求MES系统获取数据]
+        C --> D{判断研磨参数是否匹配}
+        D -- 不同 --> E[拒绝生产]
+        D -- 相同 --> F[检查盒子状态]
+        F -- NG --> E
+        F -- OK --> G[开始生产]
+        G --> H[判断意图]
+        H --> I[接收指令]
+        I --> J[获取并解析数据]
+        J --> K[生产完成]
+        K --> L[上报盒码、良品与不良品数量]
+        L --> M{判断是否为最后一个盒子}
+        M -- 是 --> N[人工结束生产]
+        N --> O[上报盒码和研磨参数]
+        O --> P[记录编号结账]
+        P --> Q[结束流程]
+        M -- 否 --> R{添加新的盒子？}
+        R -- 否 --> Q
+        R -- 是 --> S[进行验证]
+        S --> B
+    </div>
+</body>
+</html>

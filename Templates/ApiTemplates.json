@@ -1,0 +1,147 @@
+{
+  "DEVICE_STATUS_MESSAGE": {
+    "requestID": "STATUS_001",
+    "serviceName": "DEVICE_STATUS_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "operator": "OP123",
+    "data": [
+      {
+        "statusCode": "S001",
+        "statusDesc": "設備正常運行中",
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_WARNING_MESSAGE": {
+    "requestID": "WARNING_001",
+    "serviceName": "DEVICE_WARNING_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "operator": "OP123",
+    "data": [
+      {
+        "warningCode": "W001",
+        "warningDesc": "溫度過高警告",
+        "warningLevel": "中級",
+        "start": "",
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_PARAM_REQUEST": {
+    "requestID": "PARAM_001",
+    "serviceName": "DEVICE_PARAM_REQUEST",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "data": [
+      {
+        "activation": 1,
+        "temperature": 25.5,
+        "pressure": 10.2,
+        "speed": 60,
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "EVENT_TIME_MESSAGE": {
+    "requestID": "EVENT_001",
+    "serviceName": "EVENT_TIME_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "operator": "OP123",
+    "data": [
+      {
+        "startTime": "",
+        "endTime": "",
+        "duration": 3600,
+        "event": 1,
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_HEARTBEAT_MESSAGE": {
+    "requestID": "HEARTBEAT_001",
+    "serviceName": "DEVICE_HEARTBEAT_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "operator": "OP123",
+    "data": [
+      {
+        "heartBeat": 1,
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_KEYCHECKING_REQUEST": {
+    "requestID": "KEYCHECK_001",
+    "serviceName": "DEVICE_KEYCHECKING_REQUEST",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "data": [
+      {
+        "traceParams": {
+          "toolA": {
+            "usedCount": 120,
+            "lifespan": 1000
+          },
+          "toolB": {
+            "usedCount": 45,
+            "lifespan": 500
+          }
+        },
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_VEHICLE_UPLOAD": {
+    "requestID": "VEHICLE_001",
+    "serviceName": "DEVICE_VEHICLE_UPLOAD",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "operator": "OP123",
+    "data": [
+      {
+        "vehicleCode": "BOX67890",
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "BATCH_COMPLETE_MESSAGE": {
+    "requestID": "COMPLETE_001",
+    "serviceName": "BATCH_COMPLETE_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "data": [
+      {
+        "vehicleCode": "BOX67890",
+        "okNum": 95,
+        "ngNum": 5,
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  },
+  "BATCH_REPORTED_MESSAGE": {
+    "requestID": "REPORTED_001",
+    "serviceName": "BATCH_REPORTED_MESSAGE",
+    "timeStamp": "",
+    "devCode": "DEVICE001",
+    "data": [
+      {
+        "gfNum": "6",
+        "pnum": 10,
+        "vehicleCode": "BOX67890",
+        "extendData": null
+      }
+    ],
+    "extendData": null
+  }
+}
