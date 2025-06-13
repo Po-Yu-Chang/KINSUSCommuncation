@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KINSUS", "KINSUS.csproj", "{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDSWebAPI", "..\DDSWebAPI\DDSWebAPI.csproj", "{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
