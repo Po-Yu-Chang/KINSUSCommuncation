@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace DDSWebAPI.Models
 {
@@ -28,5 +27,4 @@ namespace DDSWebAPI.Models
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.Now;
     }
-
 }

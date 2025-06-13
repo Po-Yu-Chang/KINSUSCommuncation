@@ -40,6 +40,12 @@ namespace DDSWebAPI.Models
         public string Operator { get; set; }
 
         /// <summary>
+        /// 操作類型 (相容性屬性)
+        /// </summary>
+        [JsonProperty("operationType")]
+        public string OperationType { get; set; }
+
+        /// <summary>
         /// 資料內容
         /// </summary>
         [JsonProperty("data")]
@@ -141,6 +147,12 @@ namespace DDSWebAPI.Models
         /// </summary>
         [JsonProperty("data")]
         public object Data { get; set; }
+
+        /// <summary>
+        /// 操作類型 (相容性屬性)
+        /// </summary>
+        [JsonProperty("operationType")]
+        public string OperationType { get; set; }
 
         /// <summary>
         /// 擴充資料

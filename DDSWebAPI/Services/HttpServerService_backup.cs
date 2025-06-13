@@ -14,20 +14,402 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using DDSWebAPI.Interfaces;
+using Newtonsoft.Json.Linq;
 using DDSWebAPI.Models;
-using DDSWebAPI.Events;
-using DDSWebAPI.Enums;
-using DDSWebAPI.Services.Handlers;
 
 namespace DDSWebAPI.Services
 {
+    #region 相依性注入介面定義
+
+    /// <summary>
+    /// 資料庫查詢服務介面
+    /// 提供基本的資料庫操作功能，支援泛型查詢
+    /// </summary>
+    public interface IDatabaseService
+    {
+        /// <summary>
+        /// 非同步執行 SQL 查詢並返回指定類型的物件清單
+        /// </summary>
+        /// <typeparam name="T">返回的物件類型</typeparam>
+        /// <param name="sql">SQL 查詢語句</param>
+        /// <returns>查詢結果物件清單</returns>
+        /// <exception cref="InvalidOperationException">當資料庫連線失敗時拋出</exception>
+        /// <exception cref="ArgumentException">當 SQL 語句為空或無效時拋出</exception>
+        Task<List<T>> GetAllAsync<T>(string sql);
+
+        /// <summary>
+        /// 非同步執行 SQL 查詢並返回單一物件
+        /// </summary>
+        /// <typeparam name="T">返回的物件類型</typeparam>
+        /// <param name="sql">SQL 查詢語句</param>
+        /// <returns>查詢結果物件，如果沒有找到則返回 default(T)</returns>
+        Task<T> GetSingleAsync<T>(string sql);
+
+        /// <summary>
+        /// 非同步執行 SQL 指令 (INSERT, UPDATE, DELETE)
+        /// </summary>
+        /// <param name="sql">SQL 指令語句</param>
+        /// <returns>受影響的資料列數</returns>
+        Task<int> ExecuteAsync(string sql);
+    }
+
+    /// <summary>
+    /// 倉庫查詢服務介面
+    /// 提供倉庫管理相關的業務邏輯功能
+    /// </summary>
+    public interface IWarehouseQueryService
+    {
+        /// <summary>
+        /// 非同步執行出庫對話操作
+        /// </summary>
+        /// <param name="pin">針具物件資訊</param>
+        /// <param name="boxQty">出庫盒數數量</param>
+        /// <returns>操作是否成功，true 表示成功，false 表示失敗</returns>
+        /// <exception cref="ArgumentNullException">當 pin 參數為 null 時拋出</exception>
+        /// <exception cref="ArgumentException">當 boxQty 小於或等於 0 時拋出</exception>
+        Task<bool> OutWarehouseDialogAsync(object pin, int boxQty);
+
+        /// <summary>
+        /// 非同步取得軌道位置資訊
+        /// </summary>
+        /// <param name="pin">針具物件資訊</param>
+        /// <param name="boxStatus">盒子狀態篩選條件</param>
+        /// <param name="includeEmpty">是否包含空的位置</param>
+        /// <returns>軌道位置資訊清單</returns>
+        Task<List<object>> GetTrackLocationAsync(object pin, object boxStatus, bool includeEmpty);
+
+        /// <summary>
+        /// 非同步取得倉庫完整資訊
+        /// </summary>
+        /// <returns>倉庫資訊物件清單</returns>
+        Task<List<object>> GetWarehouseInfoAsync();
+
+        /// <summary>
+        /// 非同步取得指定區域的庫存統計
+        /// </summary>
+        /// <param name="area">倉庫區域識別碼</param>
+        /// <returns>庫存統計資訊</returns>
+        Task<object> GetInventoryStatisticsAsync(string area);
+    }
+
+    /// <summary>
+    /// 工作流程任務服務介面
+    /// 提供設備操作和工作流程控制功能
+    /// </summary>
+    public interface IWorkflowTaskService
+    {
+        /// <summary>
+        /// 非同步執行機器人夾具操作
+        /// </summary>
+        /// <param name="requestData">夾具操作請求資料物件</param>
+        /// <returns>完成操作的任務</returns>
+        /// <exception cref="ArgumentNullException">當 requestData 為 null 時拋出</exception>
+        /// <exception cref="InvalidOperationException">當機器人不在可操作狀態時拋出</exception>
+        Task OperationRobotClampAsync(object requestData);
+
+        /// <summary>
+        /// 非同步執行倉庫入庫作業流程
+        /// </summary>
+        /// <returns>完成入庫作業的任務</returns>
+        /// <exception cref="InvalidOperationException">當倉庫系統忙碌時拋出</exception>
+        Task WarehouseInputAsync();
+
+        /// <summary>
+        /// 非同步變更設備執行速度
+        /// </summary>
+        /// <param name="speed">目標速度值 (字串格式，如 "HIGH", "MEDIUM", "LOW" 或數值)</param>
+        /// <returns>完成速度變更的任務</returns>
+        /// <exception cref="ArgumentException">當速度值格式不正確時拋出</exception>
+        Task ChangeSpeedAsync(string speed);
+
+        /// <summary>
+        /// 非同步停止所有進行中的工作流程
+        /// </summary>
+        /// <returns>完成停止操作的任務</returns>
+        Task StopAllWorkflowsAsync();
+
+        /// <summary>
+        /// 非同步取得目前工作流程狀態
+        /// </summary>
+        /// <returns>工作流程狀態物件</returns>
+        Task<object> GetWorkflowStatusAsync();
+    }
+
+    /// <summary>
+    /// 全域配置服務介面
+    /// 管理系統全域設定和狀態
+    /// </summary>
+    public interface IGlobalConfigService
+    {
+        /// <summary>
+        /// 取得或設定是否為連續入庫模式
+        /// true: 連續入庫，false: 指定數量入庫
+        /// </summary>
+        bool IsContinueIntoWarehouse { get; set; }
+
+        /// <summary>
+        /// 取得或設定入庫盒數數量 (當非連續模式時使用)
+        /// </summary>
+        int IntoWarehouseBoxQty { get; set; }
+
+        /// <summary>
+        /// 取得或設定系統運行模式
+        /// </summary>
+        string SystemMode { get; set; }
+
+        /// <summary>
+        /// 取得或設定設備狀態
+        /// </summary>
+        string DeviceStatus { get; set; }
+
+        /// <summary>
+        /// 非同步載入系統配置
+        /// </summary>
+        /// <returns>載入操作的任務</returns>
+        Task LoadConfigAsync();
+
+        /// <summary>
+        /// 非同步儲存系統配置
+        /// </summary>
+        /// <returns>儲存操作的任務</returns>
+        Task SaveConfigAsync();
+    }
+
+    /// <summary>
+    /// 公用程式服務介面
+    /// 提供各種輔助功能和工具方法
+    /// </summary>
+    public interface IUtilityService
+    {
+        /// <summary>
+        /// 將儲存位置編號轉換為儲存位置物件
+        /// </summary>
+        /// <param name="storageNo">儲存位置編號字串</param>
+        /// <returns>儲存位置物件，包含區域、層級、軌道等資訊</returns>
+        /// <exception cref="ArgumentException">當 storageNo 格式不正確時拋出</exception>
+        object StorageNoConverter(string storageNo);
+
+        /// <summary>
+        /// 產生唯一識別碼
+        /// </summary>
+        /// <returns>唯一識別碼字串</returns>
+        string GenerateUniqueId();
+
+        /// <summary>
+        /// 驗證資料格式
+        /// </summary>
+        /// <param name="data">要驗證的資料物件</param>
+        /// <param name="validationType">驗證類型</param>
+        /// <returns>驗證結果，true 表示通過驗證</returns>
+        bool ValidateData(object data, string validationType);
+
+        /// <summary>
+        /// 格式化時間戳記
+        /// </summary>
+        /// <param name="timestamp">時間戳記</param>
+        /// <param name="format">格式字串，預設為 "yyyy-MM-dd HH:mm:ss"</param>
+        /// <returns>格式化後的時間字串</returns>
+        string FormatTimestamp(DateTime timestamp, string format = "yyyy-MM-dd HH:mm:ss");
+    }
+
+    #endregion
+
+    #region 客製化資料模型
+
+    /// <summary>
+    /// 速度變更請求資料模型
+    /// 用於封裝速度變更 API 的請求參數
+    /// </summary>
+    public class SpeedRequest
+    {
+        /// <summary>
+        /// 目標速度值
+        /// 支援格式: "HIGH", "MEDIUM", "LOW" 或數值字串 "1-100"
+        /// </summary>
+        [JsonProperty("speed")]
+        public string Speed { get; set; }
+
+        /// <summary>
+        /// 速度變更生效時間 (可選)
+        /// ISO 8601 格式: "2025-06-13T10:30:00Z"
+        /// </summary>
+        [JsonProperty("effectiveTime")]
+        public string EffectiveTime { get; set; }
+
+        /// <summary>
+        /// 速度變更原因說明 (可選)
+        /// </summary>
+        [JsonProperty("reason")]
+        public string Reason { get; set; }
+    }
+
+    /// <summary>
+    /// 夾具操作請求資料模型
+    /// 用於封裝機器人夾具操作 API 的請求參數
+    /// </summary>
+    public class ClampRequest
+    {
+        /// <summary>
+        /// 夾具操作狀態
+        /// true: 夾取，false: 釋放
+        /// </summary>
+        [JsonProperty("checked")]
+        public bool Checked { get; set; }
+
+        /// <summary>
+        /// 夾具識別碼或名稱
+        /// 例如: "CLAMP_001", "LEFT_CLAMP", "RIGHT_CLAMP"
+        /// </summary>
+        [JsonProperty("clip")]
+        public string Clip { get; set; }
+
+        /// <summary>
+        /// 夾取力度 (可選，範圍 1-100)
+        /// </summary>
+        [JsonProperty("force")]
+        public int? Force { get; set; }
+
+        /// <summary>
+        /// 操作超時時間，單位秒 (可選，預設 30 秒)
+        /// </summary>
+        [JsonProperty("timeout")]
+        public int? Timeout { get; set; }
+    }
+
+    /// <summary>
+    /// 儲存位置資訊模型
+    /// 用於表示倉庫中的儲存位置詳細資訊
+    /// </summary>
+    public class StorageInfo
+    {
+        /// <summary>
+        /// 儲存位置編號
+        /// 格式範例: "A01-L02-T03" (區域A01-層級L02-軌道T03)
+        /// </summary>
+        [JsonProperty("storageNo")]
+        public string StorageNo { get; set; }
+
+        /// <summary>
+        /// 儲存區域識別碼
+        /// 例如: "A01", "B02", "C03"
+        /// </summary>
+        [JsonProperty("area")]
+        public string Area { get; set; }
+
+        /// <summary>
+        /// 儲存層級識別碼
+        /// 例如: "L01", "L02", "L03"
+        /// </summary>
+        [JsonProperty("layer")]
+        public string Layer { get; set; }
+
+        /// <summary>
+        /// 儲存軌道識別碼
+        /// 例如: "T01", "T02", "T03"
+        /// </summary>
+        [JsonProperty("track")]
+        public string Track { get; set; }
+
+        /// <summary>
+        /// 該位置的盒子資訊清單
+        /// 包含該儲存位置中所有盒子的詳細資訊
+        /// </summary>
+        [JsonProperty("listBoxInfo")]
+        public List<object> ListBoxInfo { get; set; }
+
+        /// <summary>
+        /// 儲存位置狀態
+        /// 例如: "AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"
+        /// </summary>
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        /// <summary>
+        /// 儲存容量 (可選)
+        /// </summary>
+        [JsonProperty("capacity")]
+        public int? Capacity { get; set; }
+
+        /// <summary>
+        /// 目前使用量 (可選)
+        /// </summary>
+        [JsonProperty("currentUsage")]
+        public int? CurrentUsage { get; set; }
+    }
+
+    /// <summary>
+    /// 入料請求資料模型
+    /// 用於封裝入料 API 的請求參數
+    /// </summary>
+    public class InMaterialRequest
+    {
+        /// <summary>
+        /// 是否為連續入料模式
+        /// true: 連續入料，false: 指定數量入料
+        /// </summary>
+        [JsonProperty("isContinue")]
+        public bool IsContinue { get; set; }
+
+        /// <summary>
+        /// 指定入料盒數 (當非連續模式時必填)
+        /// </summary>
+        [JsonProperty("inBoxQty")]
+        public int? InBoxQty { get; set; }
+
+        /// <summary>
+        /// 入料優先等級 (可選)
+        /// 1: 高優先, 2: 中優先, 3: 低優先
+        /// </summary>
+        [JsonProperty("priority")]
+        public int? Priority { get; set; }
+
+        /// <summary>
+        /// 目標儲存區域 (可選)
+        /// </summary>
+        [JsonProperty("targetArea")]
+        public string TargetArea { get; set; }
+    }
+
+    /// <summary>
+    /// 出料請求資料模型
+    /// 用於封裝出料 API 的請求參數
+    /// </summary>
+    public class OutMaterialRequest
+    {
+        /// <summary>
+        /// 針具規格資訊
+        /// </summary>
+        [JsonProperty("pin")]
+        public object Pin { get; set; }
+
+        /// <summary>
+        /// 出料盒數數量
+        /// </summary>
+        [JsonProperty("boxQty")]
+        public int BoxQty { get; set; }
+
+        /// <summary>
+        /// 出料優先等級 (可選)
+        /// </summary>
+        [JsonProperty("priority")]
+        public int? Priority { get; set; }
+
+        /// <summary>
+        /// 指定出料區域 (可選)
+        /// </summary>
+        [JsonProperty("sourceArea")]
+        public string SourceArea { get; set; }
+    }
+
+    #endregion
+
     /// <summary>
     /// HTTP 伺服器服務主要類別
     /// 
@@ -67,13 +449,13 @@ namespace DDSWebAPI.Services
         /// HTTP 伺服器監聽的 URL 前綴
         /// 格式範例: "http://localhost:8085/"
         /// </summary>
-        private readonly string _urlPrefix;
+        private string _urlPrefix;
 
         /// <summary>
         /// 靜態檔案根目錄路徑
         /// 用於提供 HTML、CSS、JavaScript 等靜態檔案服務
         /// </summary>
-        private readonly string _staticFilesPath;
+        private string _staticFilesPath;
 
         /// <summary>
         /// 執行緒同步鎖定物件
@@ -81,34 +463,16 @@ namespace DDSWebAPI.Services
         /// </summary>
         private readonly object _lockObject = new object();
 
-        /// <summary>        /// MIME 類型對應表
+        /// <summary>
+        /// MIME 類型對應表
         /// 用於根據檔案副檔名設定正確的 Content-Type
         /// </summary>
-        private Dictionary<string, string> _mimeTypes;
+        private readonly Dictionary<string, string> _mimeTypes;
 
         /// <summary>
         /// 取消標記來源，用於優雅關閉伺服器
         /// </summary>
         private CancellationTokenSource _cancellationTokenSource;
-
-        #endregion
-
-        #region 處理器實例
-
-        /// <summary>
-        /// API 請求處理器
-        /// </summary>
-        private readonly ApiRequestHandler _apiRequestHandler;
-
-        /// <summary>
-        /// WebSocket 處理器
-        /// </summary>
-        private readonly WebSocketHandler _webSocketHandler;
-
-        /// <summary>
-        /// 靜態檔案處理器
-        /// </summary>
-        private readonly StaticFileHandler _staticFileHandler;
 
         #endregion
 
@@ -240,15 +604,11 @@ namespace DDSWebAPI.Services
         /// </summary>
         public DateTime? StartTime { get; private set; }
 
-        /// <summary>        /// 取得處理的請求總數
+        /// <summary>
+        /// 取得處理的請求總數
         /// 用於效能監控和統計
         /// </summary>
-        private long _totalRequestsProcessed;
-        
-        /// <summary>
-        /// 已處理的請求總數（公開屬性）
-        /// </summary>
-        public long TotalRequestsProcessed => _totalRequestsProcessed;
+        public long TotalRequestsProcessed { get; private set; }
 
         #endregion
 
@@ -345,25 +705,63 @@ namespace DDSWebAPI.Services
             _utilityService = utilityService;
 
             // 初始化 MIME 類型對應表
-            InitializeMimeTypes();
-
-            // 初始化處理器
-            _apiRequestHandler = new ApiRequestHandler(
-                _databaseService, _warehouseQueryService, _workflowTaskService, 
-                _globalConfigService, _utilityService);
-
-            _webSocketHandler = new WebSocketHandler(_utilityService);
-            _webSocketHandler.MessageReceived += OnWebSocketMessageReceived;
-            _webSocketHandler.StatusChanged += (sender, args) => OnServerStatusChanged(args.Status, args.Message);
-
-            _staticFileHandler = new StaticFileHandler(_staticFilesPath, _mimeTypes);
+            _mimeTypes = new Dictionary<string, string>
+            {
+                // 文件類型
+                { ".html", "text/html; charset=utf-8" },
+                { ".htm", "text/html; charset=utf-8" },
+                { ".txt", "text/plain; charset=utf-8" },
+                { ".xml", "application/xml; charset=utf-8" },
+                { ".json", "application/json; charset=utf-8" },
+                
+                // 樣式和腳本
+                { ".css", "text/css; charset=utf-8" },
+                { ".js", "application/javascript; charset=utf-8" },
+                { ".jsx", "text/jsx; charset=utf-8" },
+                { ".ts", "application/typescript; charset=utf-8" },
+                
+                // 圖片類型
+                { ".png", "image/png" },
+                { ".jpg", "image/jpeg" },
+                { ".jpeg", "image/jpeg" },
+                { ".gif", "image/gif" },
+                { ".bmp", "image/bmp" },
+                { ".ico", "image/x-icon" },
+                { ".svg", "image/svg+xml" },
+                { ".webp", "image/webp" },
+                
+                // 影片和音訊
+                { ".mp4", "video/mp4" },
+                { ".avi", "video/x-msvideo" },
+                { ".mov", "video/quicktime" },
+                { ".mp3", "audio/mpeg" },
+                { ".wav", "audio/wav" },
+                
+                // 文件格式
+                { ".pdf", "application/pdf" },
+                { ".doc", "application/msword" },
+                { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+                { ".xls", "application/vnd.ms-excel" },
+                { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+                
+                // 壓縮檔案
+                { ".zip", "application/zip" },
+                { ".rar", "application/x-rar-compressed" },
+                { ".7z", "application/x-7z-compressed" },
+                
+                // 字型檔案
+                { ".woff", "application/font-woff" },
+                { ".woff2", "application/font-woff2" },
+                { ".ttf", "application/font-ttf" },
+                { ".eot", "application/vnd.ms-fontobject" }
+            };
 
             // 初始化取消標記
             _cancellationTokenSource = new CancellationTokenSource();
 
             // 初始化統計資料
             ConnectedClientCount = 0;
-            _totalRequestsProcessed = 0;
+            TotalRequestsProcessed = 0;
         }
 
         #endregion
@@ -569,7 +967,7 @@ namespace DDSWebAPI.Services
                     var context = await _httpListener.GetContextAsync();
                     
                     // 增加請求計數
-                    Interlocked.Increment(ref _totalRequestsProcessed);
+                    Interlocked.Increment(ref TotalRequestsProcessed);
 
                     // 在背景處理請求，避免阻塞主迴圈
                     // 這樣可以同時處理多個請求，提高併發效能
@@ -724,94 +1122,52 @@ namespace DDSWebAPI.Services
                 // POST 請求路由
                 if (method == "POST")
                 {
-                    BaseResponse apiResponse = null;
-                    
                     switch (path)
                     {
                         // 標準 MES API 統一端點
                         case "/api/mes":
-                            apiResponse = await _apiRequestHandler.ProcessMesApiRequestAsync(requestBody, request);
-                            break;
-
-                        // === 標準 MES API v1 端點 ===
-                        case "/api/v1/send_message":
-                            apiResponse = await _apiRequestHandler.ProcessSendMessageCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/create_workorder":
-                            apiResponse = await _apiRequestHandler.ProcessCreateNeedleWorkorderCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/sync_time":
-                            apiResponse = await _apiRequestHandler.ProcessDateMessageCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/switch_recipe":
-                            apiResponse = await _apiRequestHandler.ProcessSwitchRecipeCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/device_control":
-                            apiResponse = await _apiRequestHandler.ProcessDeviceControlCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/warehouse_query":
-                            apiResponse = await _apiRequestHandler.ProcessWarehouseResourceQueryCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/tool_history_query":
-                            apiResponse = await _apiRequestHandler.ProcessToolTraceHistoryQueryCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/tool_history_report":
-                            apiResponse = await _apiRequestHandler.HandleToolTraceHistoryReportAsync(requestBody);
-                            break;
+                            var mesApiResponse = await ProcessMesApiRequestAsync(requestBody, request);
+                            await SendResponseAsync(response, mesApiResponse);
+                            return;
 
                         // 客製化倉庫管理 API
                         case "/api/in-material":
-                            apiResponse = await _apiRequestHandler.HandleInMaterialRequestAsync(requestBody);
-                            break;
+                            await HandleInMaterialRequestAsync(context, requestBody);
+                            return;
+
+                        case "/api/stop-material":
+                            await HandleStopMaterialRequestAsync(context, requestBody);
+                            return;
 
                         case "/api/out-material":
-                            apiResponse = await _apiRequestHandler.HandleOutMaterialRequestAsync(requestBody);
-                            break;
+                            await HandleOutMaterialRequestAsync(context, requestBody);
+                            return;
 
                         case "/api/getlocationbystorage":
-                            apiResponse = await _apiRequestHandler.GetLocationByStorageAsync(requestBody);
-                            break;
+                            await GetLocationByStorageAsync(context, requestBody);
+                            return;
 
                         case "/api/getlocationbypin":
-                            apiResponse = await _apiRequestHandler.GetLocationByPinAsync(requestBody);
-                            break;
+                            await GetLocationByPinAsync(context, requestBody);
+                            return;
 
                         case "/api/operationclamp":
-                            apiResponse = await _apiRequestHandler.HandleClampRequestAsync(requestBody);
-                            break;
+                            await HandleClampRequestAsync(context, requestBody);
+                            return;
 
                         case "/api/changespeed":
-                            apiResponse = await _apiRequestHandler.HandleSpeedRequestAsync(requestBody);
-                            break;
+                            await HandleSpeedRequestAsync(context, requestBody);
+                            return;
 
                         // 系統管理 API
                         case "/api/server/status":
-                            apiResponse = CreateSuccessResponse("伺服器運行正常", GetServerStatistics());
-                            break;
+                            await HandleGetServerStatusAsync(context);
+                            return;
 
                         case "/api/server/restart":
-                            var restartSuccess = await RestartAsync();
-                            apiResponse = CreateSuccessResponse($"伺服器重新啟動{(restartSuccess ? "成功" : "失敗")}", new { success = restartSuccess });
-                            break;
-
-                        default:
-                            // 觸發自訂 API 處理事件
-                            await HandleCustomApiRequest(context, path, method, requestBody);
+                            await HandleServerRestartAsync(context);
                             return;
                     }
-
-                    if (apiResponse != null)
-                    {
-                        await SendResponseAsync(response, apiResponse);
-                    }
-                    return;
                 }
                 // GET 請求路由
                 else if (method == "GET")
@@ -820,28 +1176,26 @@ namespace DDSWebAPI.Services
                     {
                         // 查詢類 API
                         case "/api/out-getpins":
-                            var pinsResponse = await _apiRequestHandler.GetOutPinsDataAsync();
-                            await SendResponseAsync(response, pinsResponse);
+                            await GetOutPinsDataAsync(context);
                             return;
 
                         case "/api/server/statistics":
-                            var statsResponse = CreateSuccessResponse("統計資料查詢成功", GetServerStatistics());
-                            await SendResponseAsync(response, statsResponse);
+                            await HandleGetServerStatisticsAsync(context);
                             return;
 
                         case "/api/health":
-                            var healthResponse = CreateSuccessResponse("健康檢查通過", new
-                            {
-                                status = "healthy",
-                                timestamp = DateTime.Now,
-                                uptime = StartTime.HasValue ? DateTime.Now - StartTime.Value : TimeSpan.Zero
-                            });
-                            await SendResponseAsync(response, healthResponse);
+                            await HandleHealthCheckAsync(context);
+                            return;
+
+                        // API 文件端點
+                        case "/api/docs":
+                        case "/api/swagger":
+                            await HandleApiDocumentationAsync(context);
                             return;
 
                         default:
                             // 靜態檔案服務
-                            await _staticFileHandler.HandleStaticFileRequestAsync(context, path);
+                            await HandleStaticFileRequestAsync(context, path);
                             return;
                     }
                 }
@@ -850,6 +1204,31 @@ namespace DDSWebAPI.Services
                 {
                     await HandleOptionsRequestAsync(context);
                     return;
+                }
+
+                // 觸發自訂 API 處理事件，讓外部模組有機會處理未識別的請求
+                var customApiArgs = new CustomApiRequestEventArgs
+                {
+                    Context = context,
+                    Path = path,
+                    Method = method,
+                    RequestBody = requestBody,
+                    Headers = new Dictionary<string, string>(),
+                    Timestamp = DateTime.Now
+                };
+
+                // 複製請求標頭到事件參數
+                foreach (string headerName in request.Headers.AllKeys)
+                {
+                    customApiArgs.Headers[headerName] = request.Headers[headerName];
+                }
+
+                CustomApiRequest?.Invoke(this, customApiArgs);
+
+                // 檢查自訂處理是否已經處理了請求
+                if (response.StatusCode != 200 || response.ContentLength64 > 0)
+                {
+                    return; // 已被自訂處理器處理
                 }
 
                 // 如果沒有任何處理器處理請求，回傳 404 Not Found
@@ -866,8 +1245,19 @@ namespace DDSWebAPI.Services
             }
         }
 
+        #endregion
+
+        #region 私有方法 - WebSocket 處理
+
         /// <summary>
         /// 處理 WebSocket 升級請求
+        /// 
+        /// WebSocket 處理流程:
+        /// 1. 接受 WebSocket 升級請求
+        /// 2. 建立 WebSocket 連接
+        /// 3. 在背景處理 WebSocket 通訊
+        /// 4. 處理連接異常
+        /// 
         /// </summary>
         /// <param name="context">HTTP 請求上下文</param>
         /// <param name="clientId">用戶端識別碼</param>
@@ -876,10 +1266,21 @@ namespace DDSWebAPI.Services
             try
             {
                 // 接受 WebSocket 升級請求
+                // 可以在這裡指定支援的子協定 (subprotocol)
                 var webSocketContext = await context.AcceptWebSocketAsync(null);
                 
-                // 使用 WebSocketHandler 處理 WebSocket 通訊
-                await _webSocketHandler.HandleWebSocketClientAsync(webSocketContext.WebSocket, clientId, _cancellationTokenSource.Token);
+                // 在背景處理 WebSocket 通訊，避免阻塞其他請求
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await HandleWebSocketClientAsync(webSocketContext.WebSocket, clientId);
+                    }
+                    catch (Exception ex)
+                    {
+                        OnServerStatusChanged(ServerStatus.Warning, $"WebSocket 用戶端處理錯誤: {ex.Message}");
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -900,273 +1301,244 @@ namespace DDSWebAPI.Services
         }
 
         /// <summary>
-        /// 處理自訂 API 請求
+        /// 處理 WebSocket 用戶端連接的完整生命週期
+        /// 
+        /// 處理功能:
+        /// 1. 接收和發送 WebSocket 訊息
+        /// 2. 處理不同類型的 WebSocket 訊息 (文字、二進位、關閉)
+        /// 3. 觸發相關事件供外部模組使用
+        /// 4. 優雅處理連接關閉
+        /// 
         /// </summary>
-        private async Task HandleCustomApiRequest(HttpListenerContext context, string path, string method, string requestBody)
+        /// <param name="webSocket">WebSocket 連接物件</param>
+        /// <param name="clientId">用戶端識別碼</param>
+        private async Task HandleWebSocketClientAsync(WebSocket webSocket, string clientId)
         {
-            var customApiArgs = new CustomApiRequestEventArgs
-            {
-                Context = context,
-                Path = path,
-                Method = method,
-                RequestBody = requestBody,
-                Headers = new Dictionary<string, string>(),
-                Timestamp = DateTime.Now
-            };
+            // 設定接收緩衝區大小 (4KB)
+            var buffer = new byte[4096];
 
-            // 複製請求標頭到事件參數
-            foreach (string headerName in context.Request.Headers.AllKeys)
-            {
-                customApiArgs.Headers[headerName] = context.Request.Headers[headerName];
-            }
-
-            CustomApiRequest?.Invoke(this, customApiArgs);
-
-            // 檢查自訂處理是否已經處理了請求
-            if (!customApiArgs.IsHandled)
-            {
-                context.Response.StatusCode = 404;
-                var notFoundResponse = CreateErrorResponse($"找不到請求的端點: {method} {path}");
-                await SendResponseAsync(context.Response, notFoundResponse, HttpStatusCode.NotFound);
-            }
-        }
-
-        /// <summary>
-        /// 處理 OPTIONS 請求 (CORS 預檢)
-        /// </summary>
-        private async Task HandleOptionsRequestAsync(HttpListenerContext context)
-        {
-            var response = context.Response;
-            
-            // 設定 CORS 標頭
-            response.Headers.Add("Access-Control-Allow-Origin", "*");
-            response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-            response.Headers.Add("Access-Control-Max-Age", "86400"); // 24 小時
-            
-            response.StatusCode = 200;
-            response.ContentLength64 = 0;
-            
-            await Task.CompletedTask;
-        }
-
-        #endregion
-
-        #region 私有方法 - 工具方法
-
-        /// <summary>
-        /// 初始化 MIME 類型對應表
-        /// </summary>
-        private void InitializeMimeTypes()
-        {
-            _mimeTypes = new Dictionary<string, string>
-            {
-                // 文件類型
-                { ".html", "text/html; charset=utf-8" },
-                { ".htm", "text/html; charset=utf-8" },
-                { ".txt", "text/plain; charset=utf-8" },
-                { ".xml", "application/xml; charset=utf-8" },
-                { ".json", "application/json; charset=utf-8" },
-                
-                // 樣式和腳本
-                { ".css", "text/css; charset=utf-8" },
-                { ".js", "application/javascript; charset=utf-8" },
-                { ".jsx", "text/jsx; charset=utf-8" },
-                { ".ts", "application/typescript; charset=utf-8" },
-                
-                // 圖片類型
-                { ".png", "image/png" },
-                { ".jpg", "image/jpeg" },
-                { ".jpeg", "image/jpeg" },
-                { ".gif", "image/gif" },
-                { ".bmp", "image/bmp" },
-                { ".ico", "image/x-icon" },
-                { ".svg", "image/svg+xml" },
-                { ".webp", "image/webp" },
-                
-                // 影片和音訊
-                { ".mp4", "video/mp4" },
-                { ".avi", "video/x-msvideo" },
-                { ".mov", "video/quicktime" },
-                { ".mp3", "audio/mpeg" },
-                { ".wav", "audio/wav" },
-                
-                // 文件格式
-                { ".pdf", "application/pdf" },
-                { ".doc", "application/msword" },
-                { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-                { ".xls", "application/vnd.ms-excel" },
-                { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-                
-                // 壓縮檔案
-                { ".zip", "application/zip" },
-                { ".rar", "application/x-rar-compressed" },
-                { ".7z", "application/x-7z-compressed" },
-                
-                // 字型檔案
-                { ".woff", "application/font-woff" },
-                { ".woff2", "application/font-woff2" },
-                { ".ttf", "application/font-ttf" },
-                { ".eot", "application/vnd.ms-fontobject" }
-            };
-        }
-
-        /// <summary>
-        /// 取得用戶端 IP 位址
-        /// </summary>
-        /// <param name="request">HTTP 請求物件</param>
-        /// <returns>用戶端 IP 位址字串</returns>
-        private string GetClientIpAddress(HttpListenerRequest request)
-        {
-            // 檢查是否有 X-Forwarded-For 標頭 (Proxy 環境)
-            string xForwardedFor = request.Headers["X-Forwarded-For"];
-            if (!string.IsNullOrEmpty(xForwardedFor))
-            {
-                // 取得第一個 IP (可能有多個 Proxy)
-                string firstIp = xForwardedFor.Split(',')[0].Trim();
-                return firstIp;
-            }
-
-            // 檢查是否有 X-Real-IP 標頭
-            string xRealIp = request.Headers["X-Real-IP"];
-            if (!string.IsNullOrEmpty(xRealIp))
-            {
-                return xRealIp.Trim();
-            }
-
-            // 使用 RemoteEndPoint 的 IP
-            return request.RemoteEndPoint?.Address?.ToString() ?? "Unknown";
-        }
-
-        /// <summary>
-        /// 發送 API 回應
-        /// </summary>
-        /// <param name="response">HTTP 回應物件</param>
-        /// <param name="apiResponse">API 回應資料</param>
-        /// <param name="statusCode">HTTP 狀態碼</param>
-        private async Task SendResponseAsync(HttpListenerResponse response, BaseResponse apiResponse, HttpStatusCode statusCode = HttpStatusCode.OK)
-        {
             try
             {
-                // 設定 CORS 標頭
-                response.Headers.Add("Access-Control-Allow-Origin", "*");
-                response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-                response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-                
-                // 序列化回應資料
-                var jsonResponse = JsonConvert.SerializeObject(apiResponse, Formatting.Indented);
-                var bytes = Encoding.UTF8.GetBytes(jsonResponse);
+                // 持續監聽 WebSocket 訊息，直到連接關閉
+                while (webSocket.State == WebSocketState.Open)
+                {
+                    try
+                    {
+                        // 接收 WebSocket 訊息
+                        var result = await webSocket.ReceiveAsync(
+                            new ArraySegment<byte>(buffer), 
+                            _cancellationTokenSource.Token);
 
-                // 設定回應屬性
-                response.ContentType = "application/json; charset=utf-8";
-                response.ContentLength64 = bytes.Length;
-                response.StatusCode = (int)statusCode;
+                        // 處理不同類型的訊息
+                        switch (result.MessageType)
+                        {
+                            case WebSocketMessageType.Text:
+                                // 處理文字訊息
+                                await HandleWebSocketTextMessageAsync(webSocket, buffer, result, clientId);
+                                break;
 
-                // 寫入回應資料
-                await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                            case WebSocketMessageType.Binary:
+                                // 處理二進位訊息
+                                await HandleWebSocketBinaryMessageAsync(webSocket, buffer, result, clientId);
+                                break;
+
+                            case WebSocketMessageType.Close:
+                                // 處理關閉訊息
+                                await HandleWebSocketCloseMessageAsync(webSocket, result, clientId);
+                                return;
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // 操作被取消，通常是伺服器正在關閉
+                        break;
+                    }
+                    catch (WebSocketException wsEx)
+                    {
+                        // WebSocket 特定錯誤
+                        OnServerStatusChanged(ServerStatus.Warning, 
+                            $"WebSocket 連接錯誤 (用戶端: {clientId}): {wsEx.Message}");
+                        break;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                OnServerStatusChanged(ServerStatus.Warning, $"發送 API 回應時發生錯誤: {ex.Message}");
+                OnServerStatusChanged(ServerStatus.Error, 
+                    $"WebSocket 用戶端處理過程中發生未預期錯誤 (用戶端: {clientId}): {ex.Message}");
+            }
+            finally
+            {
+                // 確保 WebSocket 連接被正確關閉
+                await CloseWebSocketSafelyAsync(webSocket, clientId);
             }
         }
 
         /// <summary>
-        /// 建立成功回應
+        /// 處理 WebSocket 文字訊息
         /// </summary>
-        /// <param name="message">回應訊息</param>
-        /// <param name="data">回應資料</param>
-        /// <returns>成功回應物件</returns>
-        private BaseResponse CreateSuccessResponse(string message, object data = null)
-        {
-            return new BaseResponse
-            {
-                IsSuccess = true,
-                Message = message,
-                Data = data,
-                Timestamp = DateTime.Now
-            };
-        }
-
-        /// <summary>
-        /// 建立錯誤回應
-        /// </summary>
-        /// <param name="message">錯誤訊息</param>
-        /// <returns>錯誤回應物件</returns>
-        private BaseResponse CreateErrorResponse(string message)
-        {
-            return new BaseResponse
-            {
-                IsSuccess = false,
-                Message = message,
-                Data = null,
-                Timestamp = DateTime.Now
-            };
-        }
-
-        #endregion
-
-        #region 事件觸發方法
-
-        /// <summary>
-        /// 觸發伺服器狀態變更事件
-        /// </summary>
-        /// <param name="status">伺服器狀態</param>
-        /// <param name="message">狀態訊息</param>
-        protected virtual void OnServerStatusChanged(ServerStatus status, string message)
-        {
-            ServerStatusChanged?.Invoke(this, new ServerStatusChangedEventArgs(status, message));
-        }
-
-        /// <summary>
-        /// 觸發用戶端連接事件
-        /// </summary>
+        /// <param name="webSocket">WebSocket 連接</param>
+        /// <param name="buffer">接收緩衝區</param>
+        /// <param name="result">接收結果</param>
         /// <param name="clientId">用戶端識別碼</param>
-        /// <param name="clientIp">用戶端 IP 位址</param>
-        /// <param name="connectionType">連接類型</param>
-        protected virtual void OnClientConnected(string clientId, string clientIp, string connectionType = "HTTP")
+        private async Task HandleWebSocketTextMessageAsync(WebSocket webSocket, byte[] buffer, 
+            WebSocketReceiveResult result, string clientId)
         {
-            ConnectedClientCount++;
-            ClientConnected?.Invoke(this, new ClientConnectedEventArgs(clientId, clientIp, connectionType));
-        }
-
-        /// <summary>
-        /// 觸發用戶端斷線事件
-        /// </summary>
-        /// <param name="clientId">用戶端識別碼</param>
-        /// <param name="clientIp">用戶端 IP 位址</param>
-        /// <param name="reason">斷線原因</param>
-        protected virtual void OnClientDisconnected(string clientId, string clientIp, string reason)
-        {
-            ConnectedClientCount = Math.Max(0, ConnectedClientCount - 1);
-            ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(clientId, clientIp, reason));
-        }
-
-        /// <summary>
-        /// 觸發訊息接收事件
-        /// </summary>
-        /// <param name="message">訊息內容</param>
-        /// <param name="clientId">用戶端識別碼</param>
-        /// <param name="clientIp">用戶端 IP 位址</param>
-        protected virtual void OnMessageReceived(string message, string clientId, string clientIp)
-        {
-            MessageReceived?.Invoke(this, new MessageEventArgs
+            try
             {
-                Message = message,
-                ClientId = clientId,
-                ClientIp = clientIp,
-                Timestamp = DateTime.Now
-            });
+                // 將接收到的位元組轉換為文字
+                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                
+                // 觸發 WebSocket 訊息接收事件
+                OnWebSocketMessageReceived(message, webSocket, clientId);
+
+                // 處理特殊指令 (可選)
+                if (message.StartsWith("{") && message.EndsWith("}"))
+                {
+                    // 嘗試解析 JSON 指令
+                    try
+                    {
+                        var jsonMessage = JsonConvert.DeserializeObject<dynamic>(message);
+                        await ProcessWebSocketCommandAsync(webSocket, jsonMessage, clientId);
+                    }
+                    catch (JsonException)
+                    {
+                        // 不是有效的 JSON，當作普通文字處理
+                        await SendWebSocketTextAsync(webSocket, $"收到訊息: {message}");
+                    }
+                }
+                else
+                {
+                    // 簡單的回音服務
+                    await SendWebSocketTextAsync(webSocket, $"伺服器收到: {message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                OnServerStatusChanged(ServerStatus.Warning, 
+                    $"處理 WebSocket 文字訊息時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+            }
         }
 
         /// <summary>
-        /// 觸發 WebSocket 訊息接收事件
+        /// 處理 WebSocket 二進位訊息
         /// </summary>
-        /// <param name="sender">事件發送者</param>
-        /// <param name="e">WebSocket 訊息事件參數</param>
-        private void OnWebSocketMessageReceived(object sender, WebSocketMessageEventArgs e)
+        /// <param name="webSocket">WebSocket 連接</param>
+        /// <param name="buffer">接收緩衝區</param>
+        /// <param name="result">接收結果</param>
+        /// <param name="clientId">用戶端識別碼</param>
+        private async Task HandleWebSocketBinaryMessageAsync(WebSocket webSocket, byte[] buffer, 
+            WebSocketReceiveResult result, string clientId)
         {
-            WebSocketMessageReceived?.Invoke(this, e);
+            try
+            {
+                // 取得二進位資料
+                var binaryData = new byte[result.Count];
+                Array.Copy(buffer, binaryData, result.Count);
+
+                // 觸發 WebSocket 訊息接收事件
+                var binaryMessage = Convert.ToBase64String(binaryData);
+                OnWebSocketMessageReceived($"[BINARY:{binaryData.Length} bytes] {binaryMessage}", webSocket, clientId);
+
+                // 回傳確認訊息
+                await SendWebSocketTextAsync(webSocket, $"已接收 {binaryData.Length} 位元組的二進位資料");
+            }
+            catch (Exception ex)
+            {
+                OnServerStatusChanged(ServerStatus.Warning, 
+                    $"處理 WebSocket 二進位訊息時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 處理 WebSocket 關閉訊息
+        /// </summary>
+        /// <param name="webSocket">WebSocket 連接</param>
+        /// <param name="result">接收結果</param>
+        /// <param name="clientId">用戶端識別碼</param>
+        private async Task HandleWebSocketCloseMessageAsync(WebSocket webSocket, 
+            WebSocketReceiveResult result, string clientId)
+        {
+            try
+            {
+                // 取得關閉原因
+                var closeStatus = result.CloseStatus ?? WebSocketCloseStatus.NormalClosure;
+                var closeDescription = result.CloseStatusDescription ?? "正常關閉";
+
+                // 記錄關閉事件
+                OnServerStatusChanged(ServerStatus.Info, 
+                    $"WebSocket 連接關閉 (用戶端: {clientId}, 原因: {closeDescription})");
+            }
+            catch (Exception ex)
+            {
+                OnServerStatusChanged(ServerStatus.Warning, 
+                    $"處理 WebSocket 關閉訊息時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+            }
+            finally
+            {
+                // 確保 WebSocket 連接被關閉
+                try
+                {
+                    if (webSocket.State == WebSocketState.Open)
+                    {
+                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "正常關閉", CancellationToken.None);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OnServerStatusChanged(ServerStatus.Warning, 
+                        $"關閉 WebSocket 連接時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 安全關閉 WebSocket 連接
+        /// 
+        /// 確保在關閉 WebSocket 之前，先處理任何未完成的訊息或操作
+        /// 並記錄關閉事件
+        /// </summary>
+        /// <param name="webSocket">WebSocket 連接物件</param>
+        /// <param name="clientId">用戶端識別碼</param>
+        private async Task CloseWebSocketSafelyAsync(WebSocket webSocket, string clientId)
+        {
+            try
+            {
+                // 檢查 WebSocket 狀態
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    // 發送關閉訊息 (可選)
+                    await webSocket.SendAsync(
+                        Encoding.UTF8.GetBytes("伺服器正在關閉連接..."),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None);
+
+                    // 等待一段時間以確保訊息發送完成
+                    await Task.Delay(100);
+                }
+            }
+            catch (Exception ex)
+            {
+                OnServerStatusChanged(ServerStatus.Warning, 
+                    $"安全關閉 WebSocket 連接時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    // 確保 WebSocket 連接被正確關閉
+                    if (webSocket.State == WebSocketState.Open)
+                    {
+                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "正常關閉", CancellationToken.None);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    OnServerStatusChanged(ServerStatus.Warning, 
+                        $"關閉 WebSocket 連接時發生錯誤 (用戶端: {clientId}): {ex.Message}");
+                }
+            }
         }
 
         #endregion
@@ -1189,7 +1561,6 @@ namespace DDSWebAPI.Services
                 {
                     Stop();
                     _httpListener?.Close();
-                    _cancellationTokenSource?.Dispose();
                 }
                 _disposed = true;
             }

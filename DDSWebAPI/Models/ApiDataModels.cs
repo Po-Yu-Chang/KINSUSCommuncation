@@ -158,6 +158,24 @@ namespace DDSWebAPI.Models
         public string NtpServer { get; set; }
     }
 
+    /// <summary>
+    /// 日期時間同步資料 (DATE_MESSAGE_COMMAND)
+    /// </summary>
+    public class DateTimeData
+    {
+        [JsonProperty("currentTime")]
+        public DateTime CurrentTime { get; set; }
+
+        [JsonProperty("timeZone")]
+        public string TimeZone { get; set; }
+
+        [JsonProperty("syncType")]
+        public string SyncType { get; set; }
+
+        [JsonProperty("extendData")]
+        public object ExtendData { get; set; }
+    }
+
     #endregion
 
     #region 刀具工鑽袋檔發送指令相關
@@ -854,6 +872,72 @@ namespace DDSWebAPI.Models
         /// </summary>
         [JsonProperty("traySlot")]
         public int TraySlot { get; set; }    }
+
+    /// <summary>
+    /// 鑽針履歷回報資料 (DRILL_HISTORY_REPORT_MESSAGE)
+    /// </summary>
+    public class DrillHistoryReportData
+    {
+        [JsonProperty("workorder")]
+        public string WorkOrder { get; set; }
+
+        [JsonProperty("recipe")]
+        public string Recipe { get; set; }
+
+        [JsonProperty("station")]
+        public string Station { get; set; }
+
+        [JsonProperty("spindle")]
+        public string Spindle { get; set; }
+
+        [JsonProperty("drillcode")]
+        public string DrillCode { get; set; }
+
+        [JsonProperty("drilltype")]
+        public string DrillType { get; set; }
+
+        [JsonProperty("diameter")]
+        public double Diameter { get; set; }
+
+        [JsonProperty("depth")]
+        public double Depth { get; set; }
+
+        [JsonProperty("speed")]
+        public int Speed { get; set; }
+
+        [JsonProperty("feed")]
+        public double Feed { get; set; }
+
+        [JsonProperty("totalcount")]
+        public int TotalCount { get; set; }
+
+        [JsonProperty("currentcount")]
+        public int CurrentCount { get; set; }
+
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        [JsonProperty("timestamp")]
+        public DateTime Timestamp { get; set; }
+
+        [JsonProperty("coordinates")]
+        public DrillCoordinates Coordinates { get; set; }
+    }
+
+    /// <summary>
+    /// 鑽針座標資料
+    /// </summary>
+    public class DrillCoordinates
+    {
+        [JsonProperty("x")]
+        public double X { get; set; }
+
+        [JsonProperty("y")]
+        public double Y { get; set; }
+
+        [JsonProperty("z")]
+        public double Z { get; set; }
+    }
 
     #endregion
 }

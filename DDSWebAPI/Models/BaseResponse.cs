@@ -2,8 +2,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace DDSWebAPI.Models
-{
-    /// <summary>
+{    /// <summary>
     /// 基礎回應類別
     /// </summary>
     /// <typeparam name="T">資料類型</typeparam>
@@ -38,6 +37,12 @@ namespace DDSWebAPI.Models
         /// </summary>
         [JsonProperty("statusCode")]
         public int StatusCode { get; set; }
+
+        /// <summary>
+        /// 是否成功 (相容性屬性)
+        /// </summary>
+        [JsonProperty("isSuccess")]
+        public bool IsSuccess { get; set; } = true;
 
         /// <summary>
         /// 狀態訊息
@@ -170,6 +175,12 @@ namespace DDSWebAPI.Models
         /// </summary>
         [JsonProperty("success")]
         public bool Success { get; set; }
+
+        /// <summary>
+        /// 是否成功 (相容性屬性)
+        /// </summary>
+        [JsonProperty("isSuccess")]
+        public bool IsSuccess { get; set; } = true;
 
         /// <summary>
         /// 訊息

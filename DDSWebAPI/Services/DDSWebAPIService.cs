@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using DDSWebAPI.Models;
+using DDSWebAPI.Events;
 
 namespace DDSWebAPI.Services
 {
@@ -18,6 +19,9 @@ namespace DDSWebAPI.Services
 
         private HttpServerService _httpServerService;
         private ApiClientService _apiClientService;
+        private SecurityMiddleware _securityMiddleware;
+        private PerformanceController _performanceController;
+        private ApiCommandProcessor _commandProcessor;
         private ObservableCollection<ClientConnection> _clientConnections;
         private bool _isServerRunning;
         private string _serverUrl;
@@ -169,7 +173,7 @@ namespace DDSWebAPI.Services
         #region 建構函式
 
         /// <summary>
-        /// 初始化 DDS Web API 服務
+        /// 初始化 DDS Web API 服務（使用預設設定）
         /// </summary>
         public DDSWebAPIService()
         {
@@ -185,7 +189,7 @@ namespace DDSWebAPI.Services
         }
 
         /// <summary>
-        /// 初始化 DDS Web API 服務
+        /// 初始化 DDS Web API 服務（使用參數）
         /// </summary>
         /// <param name="serverUrl">伺服器監聽 URL</param>
         /// <param name="remoteApiUrl">遠端 API URL</param>
@@ -201,6 +205,49 @@ namespace DDSWebAPI.Services
             OperatorName = operatorName;
 
             InitializeServices();
+        }
+
+        /// <summary>
+        /// 初始化 DDS Web API 服務（使用設定檔）
+        /// </summary>
+        /// <param name="configFilePath">設定檔路徑</param>
+        public DDSWebAPIService(string configFilePath)
+        {
+            _clientConnections = new ObservableCollection<ClientConnection>();
+            
+            try
+            {
+                var configManager = new ConfigurationManager(configFilePath);
+                var appConfig = AppConfiguration.LoadFromConfigManager(configManager);
+                
+                ServerUrl = appConfig.Server.ServerUrl;
+                RemoteApiUrl = appConfig.Server.RemoteApiUrl;
+                DeviceCode = appConfig.Server.DeviceCode;
+                OperatorName = appConfig.Server.OperatorName;
+
+                InitializeServices(appConfig);
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage(LogLevel.Error, $"載入設定檔失敗: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 初始化 DDS Web API 服務（使用應用程式設定物件）
+        /// </summary>
+        /// <param name="appConfig">應用程式設定</param>
+        public DDSWebAPIService(AppConfiguration appConfig)
+        {
+            _clientConnections = new ObservableCollection<ClientConnection>();
+            
+            ServerUrl = appConfig.Server.ServerUrl;
+            RemoteApiUrl = appConfig.Server.RemoteApiUrl;
+            DeviceCode = appConfig.Server.DeviceCode;
+            OperatorName = appConfig.Server.OperatorName;
+
+            InitializeServices(appConfig);
         }
 
         #endregion
@@ -328,10 +375,26 @@ namespace DDSWebAPI.Services
         #region 私有方法
 
         /// <summary>
-        /// 初始化服務
+        /// 初始化服務（使用預設設定）
         /// </summary>
         private void InitializeServices()
         {
+            InitializeSecurityMiddleware();
+            InitializePerformanceController();
+            InitializeCommandProcessor();
+            InitializeHttpServer();
+            InitializeApiClient();
+        }
+
+        /// <summary>
+        /// 初始化服務（使用應用程式設定）
+        /// </summary>
+        /// <param name="appConfig">應用程式設定</param>
+        private void InitializeServices(AppConfiguration appConfig)
+        {
+            InitializeSecurityMiddleware(appConfig.Security);
+            InitializePerformanceController(appConfig.Performance);
+            InitializeCommandProcessor();
             InitializeHttpServer();
             InitializeApiClient();
         }
@@ -380,6 +443,89 @@ namespace DDSWebAPI.Services
             // 註冊事件
             _apiClientService.ApiCallSuccess += OnApiClientCallSuccess;
             _apiClientService.ApiCallFailure += OnApiClientCallFailure;
+        }        /// <summary>
+        /// 初始化安全性中介軟體（使用預設設定）
+        /// </summary>
+        private void InitializeSecurityMiddleware()
+        {
+            // 設定有效的 API 金鑰列表
+            var validApiKeys = new[]
+            {
+                "KINSUS_API_KEY_001",
+                "KINSUS_API_KEY_002"
+            };
+
+            // 設定 IP 白名單（空白表示允許所有 IP）
+            var ipWhitelist = new string[0];
+
+            // 設定簽章密鑰
+            var secretKey = "KINSUS_SECRET_KEY_2025";
+
+            _securityMiddleware = new SecurityMiddleware(validApiKeys, ipWhitelist, secretKey);
+        }
+
+        /// <summary>
+        /// 初始化安全性中介軟體（使用設定檔）
+        /// </summary>
+        /// <param name="securityConfig">安全性設定</param>
+        private void InitializeSecurityMiddleware(SecurityConfiguration securityConfig)
+        {
+            // 設定有效的 API 金鑰列表
+            var validApiKeys = string.IsNullOrEmpty(securityConfig.ApiKey) 
+                ? new[] { "KINSUS_API_KEY_001", "KINSUS_API_KEY_002" }
+                : new[] { securityConfig.ApiKey };
+
+            // 設定 IP 白名單
+            var ipWhitelist = securityConfig.AllowedIpAddresses ?? new string[0];
+
+            // 設定簽章密鑰
+            var secretKey = string.IsNullOrEmpty(securityConfig.SignatureSecret) 
+                ? "KINSUS_SECRET_KEY_2025" 
+                : securityConfig.SignatureSecret;
+
+            _securityMiddleware = new SecurityMiddleware(validApiKeys, ipWhitelist, secretKey)
+            {
+                EnableApiKeyValidation = securityConfig.EnableApiKeyValidation,
+                EnableSignatureValidation = securityConfig.EnableSignatureValidation,
+                EnableIpWhitelist = securityConfig.EnableIpWhitelist
+            };
+        }        /// <summary>
+        /// 初始化效能控制器（使用預設設定）
+        /// </summary>
+        private void InitializePerformanceController()
+        {
+            _performanceController = new PerformanceController(
+                maxRequestsPerMinute: 100,
+                maxConcurrentConnections: 10,
+                maxDataSizeMB: 10,
+                requestTimeoutSeconds: 30
+            );
+        }
+
+        /// <summary>
+        /// 初始化效能控制器（使用設定檔）
+        /// </summary>
+        /// <param name="performanceConfig">效能設定</param>
+        private void InitializePerformanceController(PerformanceConfiguration performanceConfig)
+        {
+            _performanceController = new PerformanceController(
+                maxRequestsPerMinute: performanceConfig.MaxRequestsPerMinute,
+                maxConcurrentConnections: performanceConfig.MaxConcurrentConnections,
+                maxDataSizeMB: (int)(performanceConfig.MaxRequestSizeBytes / (1024 * 1024)), // 轉換為 MB
+                requestTimeoutSeconds: performanceConfig.RequestTimeoutSeconds
+            );
+        }
+
+        /// <summary>
+        /// 初始化指令處理器
+        /// </summary>
+        private void InitializeCommandProcessor()
+        {
+            _commandProcessor = new ApiCommandProcessor();
+            
+            // 註冊事件
+            _commandProcessor.CommandProcessed += OnCommandProcessed;
+            _commandProcessor.LogMessage += OnCommandProcessorLogMessage;
         }
 
         /// <summary>
@@ -424,8 +570,7 @@ namespace DDSWebAPI.Services
                 {
                     client.RequestType = requestType;
                 }
-            }
-        }
+            }        }
 
         #endregion
 
@@ -434,34 +579,69 @@ namespace DDSWebAPI.Services
         /// <summary>
         /// HTTP 伺服器訊息接收事件處理
         /// </summary>
-        private void OnHttpServerMessageReceived(object sender, MessageEventArgs e)
+        private async void OnHttpServerMessageReceived(object sender, MessageEventArgs e)
         {
+            string connectionToken = null;
             try
             {
-                // 嘗試解析服務名稱
+                // 1. 效能檢查
+                var performanceResult = await _performanceController?.ValidateRequestAsync(e.ClientId, e.Message);
+                if (performanceResult != null && !performanceResult.IsAllowed)
+                {
+                    OnLogMessage(LogLevel.Warning, $"效能檢查失敗: {performanceResult.ErrorMessage} (來自 {e.ClientIp})");
+                    return;
+                }
+                connectionToken = performanceResult?.ConnectionToken;
+
+                // 2. 安全性檢查（從 HTTP 標頭中提取，這裡先跳過詳細實現）
+                // TODO: 從 HttpContext 中提取 Authorization, Signature, Timestamp 等標頭
+                
+                // 3. 嘗試解析請求內容
+                BaseRequest request = null;
                 string serviceName = "未知";
+                string commandType = "UNKNOWN";
+                
                 try
                 {
                     dynamic jsonData = Newtonsoft.Json.JsonConvert.DeserializeObject(e.Message);
                     serviceName = jsonData?.serviceName ?? "未知";
+                    commandType = jsonData?.command ?? "UNKNOWN";
+                    
+                    // 嘗試解析為 BaseRequest
+                    request = Newtonsoft.Json.JsonConvert.DeserializeObject<BaseRequest>(e.Message);
                 }
-                catch
+                catch (Exception parseEx)
                 {
-                    // 無法解析 JSON，使用預設值
+                    OnLogMessage(LogLevel.Warning, $"無法解析請求內容: {parseEx.Message}");
                 }
 
-                // 更新用戶端連接資訊
+                // 4. 更新用戶端連接資訊
                 UpdateClientConnection(e.ClientId, e.ClientIp, serviceName);
 
-                // 記錄訊息
-                OnLogMessage(LogLevel.Info, $"收到來自 {e.ClientIp} 的 {serviceName} 請求");
+                // 5. 記錄訊息
+                OnLogMessage(LogLevel.Info, $"收到來自 {e.ClientIp} 的 {serviceName} 請求 (指令: {commandType})");
 
-                // 轉發事件
+                // 6. 處理具體的 API 指令
+                if (request != null && commandType != "UNKNOWN")
+                {
+                    var response = await ProcessApiCommand(commandType, request);
+                    OnLogMessage(LogLevel.Info, $"指令 {commandType} 處理完成，結果: {(response.Success ? "成功" : "失敗")}");
+                }
+
+                // 7. 轉發事件
                 MessageReceived?.Invoke(this, e);
             }
             catch (Exception ex)
             {
                 OnLogMessage(LogLevel.Error, $"處理 HTTP 伺服器訊息時發生錯誤: {ex.Message}");
+            }
+            finally
+            {
+                // 釋放平行處理能力
+                if (!string.IsNullOrEmpty(connectionToken))
+                {
+                    _performanceController?.ReleaseConcurrency(connectionToken);
+                }
             }
         }
 
@@ -517,6 +697,40 @@ namespace DDSWebAPI.Services
             ApiCallFailure?.Invoke(this, e);
         }
 
+        /// <summary>
+        /// 指令處理完成事件處理
+        /// </summary>
+        private void OnCommandProcessed(object sender, CommandProcessedEventArgs e)
+        {
+            OnLogMessage(LogLevel.Info, $"指令處理完成: {e.CommandType}, 請求ID: {e.RequestId}, 成功: {e.Success}");
+        }        /// <summary>
+        /// 指令處理器日誌事件處理
+        /// </summary>
+        private void OnCommandProcessorLogMessage(object sender, LogEventArgs e)
+        {
+            LogLevel logLevel;
+            switch (e.Level)
+            {
+                case "DEBUG":
+                    logLevel = LogLevel.Debug;
+                    break;
+                case "INFO":
+                    logLevel = LogLevel.Info;
+                    break;
+                case "WARNING":
+                    logLevel = LogLevel.Warning;
+                    break;
+                case "ERROR":
+                    logLevel = LogLevel.Error;
+                    break;
+                default:
+                    logLevel = LogLevel.Info;
+                    break;
+            }
+            
+            OnLogMessage(logLevel, e.Message);
+        }
+
         #endregion
 
         #region 事件觸發方法
@@ -569,6 +783,49 @@ namespace DDSWebAPI.Services
         }
 
         #endregion
+
+        /// <summary>
+        /// 處理具體的 API 指令
+        /// </summary>
+        public async Task<BaseResponse> ProcessApiCommand(string commandType, BaseRequest request)
+        {
+            if (_commandProcessor == null)
+            {
+                return new BaseResponse
+                {
+                    RequestId = request?.RequestId ?? Guid.NewGuid().ToString(),
+                    Success = false,
+                    Message = "指令處理器未初始化",
+                    Timestamp = DateTime.Now
+                };
+            }
+
+            switch (commandType)
+            {
+                case "SEND_MESSAGE_COMMAND":
+                    return await _commandProcessor.ProcessSendMessageCommand(request);
+                case "CREATE_NEEDLE_WORKORDER_COMMAND":
+                    return await _commandProcessor.ProcessCreateWorkorderCommand(request);
+                case "DATE_MESSAGE_COMMAND":
+                    return await _commandProcessor.ProcessDateSyncCommand(request);
+                case "SWITCH_RECIPE_COMMAND":
+                    return await _commandProcessor.ProcessSwitchRecipeCommand(request);
+                case "DEVICE_CONTROL_COMMAND":
+                    return await _commandProcessor.ProcessDeviceControlCommand(request);
+                case "WAREHOUSE_RESOURCE_QUERY_COMMAND":
+                    return await _commandProcessor.ProcessWarehouseResourceQueryCommand(request);
+                case "TOOL_TRACE_HISTORY_QUERY_COMMAND":
+                    return await _commandProcessor.ProcessToolTraceHistoryQueryCommand(request);
+                default:
+                    return new BaseResponse
+                    {
+                        RequestId = request?.RequestId ?? Guid.NewGuid().ToString(),
+                        Success = false,
+                        Message = $"不支援的指令類型: {commandType}",
+                        Timestamp = DateTime.Now
+                    };
+            }
+        }
     }
 
     #region 輔助類別

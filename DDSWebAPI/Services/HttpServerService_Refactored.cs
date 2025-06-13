@@ -81,10 +81,11 @@ namespace DDSWebAPI.Services
         /// </summary>
         private readonly object _lockObject = new object();
 
-        /// <summary>        /// MIME 類型對應表
+        /// <summary>
+        /// MIME 類型對應表
         /// 用於根據檔案副檔名設定正確的 Content-Type
         /// </summary>
-        private Dictionary<string, string> _mimeTypes;
+        private readonly Dictionary<string, string> _mimeTypes;
 
         /// <summary>
         /// 取消標記來源，用於優雅關閉伺服器
@@ -240,15 +241,11 @@ namespace DDSWebAPI.Services
         /// </summary>
         public DateTime? StartTime { get; private set; }
 
-        /// <summary>        /// 取得處理的請求總數
+        /// <summary>
+        /// 取得處理的請求總數
         /// 用於效能監控和統計
         /// </summary>
-        private long _totalRequestsProcessed;
-        
-        /// <summary>
-        /// 已處理的請求總數（公開屬性）
-        /// </summary>
-        public long TotalRequestsProcessed => _totalRequestsProcessed;
+        public long TotalRequestsProcessed { get; private set; }
 
         #endregion
 
@@ -363,7 +360,7 @@ namespace DDSWebAPI.Services
 
             // 初始化統計資料
             ConnectedClientCount = 0;
-            _totalRequestsProcessed = 0;
+            TotalRequestsProcessed = 0;
         }
 
         #endregion
@@ -569,7 +566,7 @@ namespace DDSWebAPI.Services
                     var context = await _httpListener.GetContextAsync();
                     
                     // 增加請求計數
-                    Interlocked.Increment(ref _totalRequestsProcessed);
+                    Interlocked.Increment(ref TotalRequestsProcessed);
 
                     // 在背景處理請求，避免阻塞主迴圈
                     // 這樣可以同時處理多個請求，提高併發效能
@@ -731,39 +728,6 @@ namespace DDSWebAPI.Services
                         // 標準 MES API 統一端點
                         case "/api/mes":
                             apiResponse = await _apiRequestHandler.ProcessMesApiRequestAsync(requestBody, request);
-                            break;
-
-                        // === 標準 MES API v1 端點 ===
-                        case "/api/v1/send_message":
-                            apiResponse = await _apiRequestHandler.ProcessSendMessageCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/create_workorder":
-                            apiResponse = await _apiRequestHandler.ProcessCreateNeedleWorkorderCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/sync_time":
-                            apiResponse = await _apiRequestHandler.ProcessDateMessageCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/switch_recipe":
-                            apiResponse = await _apiRequestHandler.ProcessSwitchRecipeCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/device_control":
-                            apiResponse = await _apiRequestHandler.ProcessDeviceControlCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/warehouse_query":
-                            apiResponse = await _apiRequestHandler.ProcessWarehouseResourceQueryCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/tool_history_query":
-                            apiResponse = await _apiRequestHandler.ProcessToolTraceHistoryQueryCommandAsync(requestBody);
-                            break;
-
-                        case "/api/v1/tool_history_report":
-                            apiResponse = await _apiRequestHandler.HandleToolTraceHistoryReportAsync(requestBody);
                             break;
 
                         // 客製化倉庫管理 API
