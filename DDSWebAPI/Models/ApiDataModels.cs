@@ -58,82 +58,76 @@ namespace DDSWebAPI.Models
     public class CreateNeedleWorkorderData
     {
         /// <summary>
-        /// 任務 ID
+        /// 工單編號
         /// </summary>
-        [JsonProperty("taskID")]
-        public string TaskID { get; set; }
+        [JsonProperty("workOrderNo")]
+        public string WorkOrderNo { get; set; }
 
         /// <summary>
-        /// 工單號
+        /// 產品型號
         /// </summary>
-        [JsonProperty("workOrder")]
-        public string WorkOrder { get; set; }
+        [JsonProperty("productModel")]
+        public string ProductModel { get; set; }
 
         /// <summary>
-        /// T Package
+        /// 數量
         /// </summary>
-        [JsonProperty("tPackage")]
-        public string TPackage { get; set; }
-
-        /// <summary>
-        /// 堆疊數量
-        /// </summary>
-        [JsonProperty("stackCount")]
-        public int StackCount { get; set; }
-
-        /// <summary>
-        /// 總片數
-        /// </summary>
-        [JsonProperty("totalSheets")]
-        public int TotalSheets { get; set; }
-
-        /// <summary>
-        /// 開始時間
-        /// </summary>
-        [JsonProperty("startTime")]
-        public string StartTime { get; set; }
-
-        /// <summary>
-        /// 結束時間
-        /// </summary>
-        [JsonProperty("endTime")]
-        public string EndTime { get; set; }
+        [JsonProperty("quantity")]
+        public int Quantity { get; set; }
 
         /// <summary>
         /// 優先級
         /// </summary>
         [JsonProperty("priority")]
-        public string Priority { get; set; }
+        public int Priority { get; set; }
 
         /// <summary>
-        /// 是否為緊急工單
+        /// 預計開始時間
         /// </summary>
-        [JsonProperty("isUrgent")]
-        public bool IsUrgent { get; set; }
+        [JsonProperty("scheduledStartTime")]
+        public DateTime ScheduledStartTime { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 預計結束時間
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("scheduledEndTime")]
+        public DateTime ScheduledEndTime { get; set; }
+
+        /// <summary>
+        /// 刀具規格列表
+        /// </summary>
+        [JsonProperty("toolSpecs")]
+        public List<ToolSpecData> ToolSpecs { get; set; } = new List<ToolSpecData>();
     }
 
     /// <summary>
-    /// 派針工單建立請求
+    /// 刀具規格資料
     /// </summary>
-    public class CreateNeedleWorkorderRequest : BaseRequest<CreateNeedleWorkorderData>
+    public class ToolSpecData
     {
         /// <summary>
-        /// 總片數
+        /// 刀具代碼
         /// </summary>
-        [JsonProperty("AllPlate")]
-        public int AllPlate { get; set; }
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
 
         /// <summary>
-        /// 壓板數
+        /// 刀具規格
         /// </summary>
-        [JsonProperty("Pressplatens")]
-        public int Pressplatens { get; set; }
+        [JsonProperty("toolSpec")]
+        public string ToolSpec { get; set; }
+
+        /// <summary>
+        /// 需要數量
+        /// </summary>
+        [JsonProperty("requiredQuantity")]
+        public int RequiredQuantity { get; set; }
+
+        /// <summary>
+        /// 位置資訊
+        /// </summary>
+        [JsonProperty("position")]
+        public string Position { get; set; }
     }
 
     #endregion
@@ -143,13 +137,13 @@ namespace DDSWebAPI.Models
     /// <summary>
     /// 設備時間同步指令資料
     /// </summary>
-    public class DateMessageData
+    public class DateSyncData
     {
         /// <summary>
         /// 同步時間
         /// </summary>
-        [JsonProperty("syncTime")]
-        public string SyncTime { get; set; }
+        [JsonProperty("syncDateTime")]
+        public DateTime SyncDateTime { get; set; }
 
         /// <summary>
         /// 時區資訊
@@ -158,10 +152,10 @@ namespace DDSWebAPI.Models
         public string TimeZone { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// NTP 伺服器位址
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("ntpServer")]
+        public string NtpServer { get; set; }
     }
 
     #endregion
@@ -174,16 +168,10 @@ namespace DDSWebAPI.Models
     public class SwitchRecipeData
     {
         /// <summary>
-        /// 配方檔案路徑
+        /// 配方檔案名稱
         /// </summary>
-        [JsonProperty("recipeFilePath")]
-        public string RecipeFilePath { get; set; }
-
-        /// <summary>
-        /// 配方名稱
-        /// </summary>
-        [JsonProperty("recipeName")]
-        public string RecipeName { get; set; }
+        [JsonProperty("recipeFileName")]
+        public string RecipeFileName { get; set; }
 
         /// <summary>
         /// 配方版本
@@ -192,10 +180,22 @@ namespace DDSWebAPI.Models
         public string RecipeVersion { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 配方內容（Base64 編碼）
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("recipeContent")]
+        public string RecipeContent { get; set; }
+
+        /// <summary>
+        /// 工作模式
+        /// </summary>
+        [JsonProperty("workMode")]
+        public string WorkMode { get; set; }
+
+        /// <summary>
+        /// 配方類型
+        /// </summary>
+        [JsonProperty("recipeType")]
+        public string RecipeType { get; set; }
     }
 
     #endregion
@@ -208,22 +208,28 @@ namespace DDSWebAPI.Models
     public class DeviceControlData
     {
         /// <summary>
-        /// 控制動作 (start, stop, pause, resume)
+        /// 控制指令 (START, STOP, PAUSE, RESUME, RESET)
         /// </summary>
-        [JsonProperty("action")]
-        public string Action { get; set; }
+        [JsonProperty("command")]
+        public string Command { get; set; }
 
         /// <summary>
-        /// 控制模式 (auto, manual)
+        /// 目標設備
         /// </summary>
-        [JsonProperty("mode")]
-        public string Mode { get; set; }
+        [JsonProperty("targetDevice")]
+        public string TargetDevice { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 控制參數
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("parameters")]
+        public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// 是否強制執行
+        /// </summary>
+        [JsonProperty("forceExecute")]
+        public bool ForceExecute { get; set; }
     }
 
     #endregion
@@ -236,28 +242,106 @@ namespace DDSWebAPI.Models
     public class WarehouseResourceQueryData
     {
         /// <summary>
-        /// 查詢類型 (all, byType, byStatus)
+        /// 查詢類型 (ALL, BY_TOOL_CODE, BY_POSITION, BY_STATUS)
         /// </summary>
         [JsonProperty("queryType")]
         public string QueryType { get; set; }
 
         /// <summary>
-        /// 資源類型
+        /// 刀具代碼（查詢特定刀具時使用）
         /// </summary>
-        [JsonProperty("resourceType")]
-        public string ResourceType { get; set; }
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
 
         /// <summary>
-        /// 資源狀態
+        /// 位置代碼（查詢特定位置時使用）
         /// </summary>
-        [JsonProperty("resourceStatus")]
-        public string ResourceStatus { get; set; }
+        [JsonProperty("positionCode")]
+        public string PositionCode { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 狀態篩選（查詢特定狀態時使用）
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("statusFilter")]
+        public string StatusFilter { get; set; }
+    }
+
+    /// <summary>
+    /// 倉庫資源查詢回應資料
+    /// </summary>
+    public class WarehouseResourceQueryResponse
+    {
+        /// <summary>
+        /// 倉庫資源列表
+        /// </summary>
+        [JsonProperty("resources")]
+        public List<WarehouseResourceData> Resources { get; set; } = new List<WarehouseResourceData>();
+
+        /// <summary>
+        /// 總數量
+        /// </summary>
+        [JsonProperty("totalCount")]
+        public int TotalCount { get; set; }
+
+        /// <summary>
+        /// 查詢時間
+        /// </summary>
+        [JsonProperty("queryTime")]
+        public DateTime QueryTime { get; set; }
+    }
+
+    /// <summary>
+    /// 倉庫資源資料
+    /// </summary>
+    public class WarehouseResourceData
+    {
+        /// <summary>
+        /// 刀具代碼
+        /// </summary>
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
+
+        /// <summary>
+        /// 刀具規格
+        /// </summary>
+        [JsonProperty("toolSpec")]
+        public string ToolSpec { get; set; }
+
+        /// <summary>
+        /// 位置代碼
+        /// </summary>
+        [JsonProperty("positionCode")]
+        public string PositionCode { get; set; }
+
+        /// <summary>
+        /// 數量
+        /// </summary>
+        [JsonProperty("quantity")]
+        public int Quantity { get; set; }
+
+        /// <summary>
+        /// 狀態
+        /// </summary>
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        /// <summary>
+        /// 使用次數
+        /// </summary>
+        [JsonProperty("usageCount")]
+        public int UsageCount { get; set; }
+
+        /// <summary>
+        /// 剩餘壽命
+        /// </summary>
+        [JsonProperty("remainingLife")]
+        public int RemainingLife { get; set; }
+
+        /// <summary>
+        /// 最後更新時間
+        /// </summary>
+        [JsonProperty("lastUpdateTime")]
+        public DateTime LastUpdateTime { get; set; }
     }
 
     #endregion
@@ -270,172 +354,136 @@ namespace DDSWebAPI.Models
     public class ToolTraceHistoryQueryData
     {
         /// <summary>
-        /// 鑽針 ID
+        /// 刀具代碼
         /// </summary>
-        [JsonProperty("toolId")]
-        public string ToolId { get; set; }
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
 
         /// <summary>
-        /// 查詢開始時間
+        /// 開始時間
         /// </summary>
         [JsonProperty("startTime")]
-        public string StartTime { get; set; }
+        public DateTime? StartTime { get; set; }
 
         /// <summary>
-        /// 查詢結束時間
+        /// 結束時間
         /// </summary>
         [JsonProperty("endTime")]
-        public string EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 查詢類型 (USAGE, MOVEMENT, MAINTENANCE, ALL)
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("queryType")]
+        public string QueryType { get; set; }
+
+        /// <summary>
+        /// 頁碼
+        /// </summary>
+        [JsonProperty("pageNumber")]
+        public int PageNumber { get; set; } = 1;
+
+        /// <summary>
+        /// 每頁筆數
+        /// </summary>
+        [JsonProperty("pageSize")]
+        public int PageSize { get; set; } = 50;
     }
 
-    #endregion
-
-    #region 配針回報上傳相關
-
     /// <summary>
-    /// 配針回報上傳資料
+    /// 鑽針履歷查詢回應資料
     /// </summary>
-    public class ToolOutputReportData
+    public class ToolTraceHistoryQueryResponse
     {
         /// <summary>
-        /// 工單號
+        /// 履歷記錄列表
         /// </summary>
-        [JsonProperty("workOrder")]
-        public string WorkOrder { get; set; }
+        [JsonProperty("histories")]
+        public List<ToolTraceHistoryData> Histories { get; set; } = new List<ToolTraceHistoryData>();
 
         /// <summary>
-        /// 刀具 ID
+        /// 總筆數
         /// </summary>
-        [JsonProperty("toolId")]
-        public string ToolId { get; set; }
+        [JsonProperty("totalCount")]
+        public int TotalCount { get; set; }
 
         /// <summary>
-        /// 配針結果 (success, failure)
+        /// 當前頁碼
         /// </summary>
-        [JsonProperty("result")]
-        public string Result { get; set; }
+        [JsonProperty("currentPage")]
+        public int CurrentPage { get; set; }
 
         /// <summary>
-        /// 配針時間
+        /// 總頁數
         /// </summary>
-        [JsonProperty("processTime")]
-        public string ProcessTime { get; set; }
-
-        /// <summary>
-        /// 配針數量
-        /// </summary>
-        [JsonProperty("quantity")]
-        public int Quantity { get; set; }
-
-        /// <summary>
-        /// 擴充資料
-        /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("totalPages")]
+        public int TotalPages { get; set; }
     }
 
-    #endregion
-
-    #region 錯誤回報上傳相關
-
     /// <summary>
-    /// 錯誤回報上傳資料
+    /// 鑽針履歷資料
     /// </summary>
-    public class ErrorReportData
+    public class ToolTraceHistoryData
     {
         /// <summary>
-        /// 錯誤代碼
+        /// 履歷編號
         /// </summary>
-        [JsonProperty("errorCode")]
-        public string ErrorCode { get; set; }
+        [JsonProperty("historyId")]
+        public string HistoryId { get; set; }
 
         /// <summary>
-        /// 錯誤訊息
+        /// 刀具代碼
         /// </summary>
-        [JsonProperty("errorMessage")]
-        public string ErrorMessage { get; set; }
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
 
         /// <summary>
-        /// 錯誤等級 (low, medium, high, critical)
+        /// 操作類型 (INSTALL, REMOVE, USE, MAINTAIN)
         /// </summary>
-        [JsonProperty("errorLevel")]
-        public string ErrorLevel { get; set; }
+        [JsonProperty("operationType")]
+        public string OperationType { get; set; }
 
         /// <summary>
-        /// 發生時間
+        /// 操作時間
         /// </summary>
-        [JsonProperty("occurTime")]
-        public string OccurTime { get; set; }
+        [JsonProperty("operationTime")]
+        public DateTime OperationTime { get; set; }
 
         /// <summary>
-        /// 相關工單號
+        /// 操作人員
         /// </summary>
-        [JsonProperty("workOrder")]
-        public string WorkOrder { get; set; }
+        [JsonProperty("operatorName")]
+        public string OperatorName { get; set; }
 
         /// <summary>
-        /// 擴充資料
+        /// 原位置
         /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
-    }
-
-    #endregion
-
-    #region 機臺狀態上報相關
-
-    /// <summary>
-    /// 機臺狀態上報資料
-    /// </summary>
-    public class MachineStatusReportData
-    {
-        /// <summary>
-        /// 機臺狀態 (idle, running, error, maintenance)
-        /// </summary>
-        [JsonProperty("status")]
-        public string Status { get; set; }
+        [JsonProperty("fromPosition")]
+        public string FromPosition { get; set; }
 
         /// <summary>
-        /// CPU 使用率
+        /// 目標位置
         /// </summary>
-        [JsonProperty("cpuUsage")]
-        public float CpuUsage { get; set; }
+        [JsonProperty("toPosition")]
+        public string ToPosition { get; set; }
 
         /// <summary>
-        /// 記憶體使用率
+        /// 使用次數
         /// </summary>
-        [JsonProperty("memoryUsage")]
-        public float MemoryUsage { get; set; }
+        [JsonProperty("usageCount")]
+        public int UsageCount { get; set; }
 
         /// <summary>
-        /// 磁碟使用率
+        /// 操作結果
         /// </summary>
-        [JsonProperty("diskUsage")]
-        public float DiskUsage { get; set; }
+        [JsonProperty("operationResult")]
+        public string OperationResult { get; set; }
 
         /// <summary>
-        /// 溫度
+        /// 備註
         /// </summary>
-        [JsonProperty("temperature")]
-        public float Temperature { get; set; }
-
-        /// <summary>
-        /// 上報時間
-        /// </summary>
-        [JsonProperty("reportTime")]
-        public string ReportTime { get; set; }
-
-        /// <summary>
-        /// 擴充資料
-        /// </summary>
-        [JsonProperty("extendData")]
-        public object ExtendData { get; set; }
+        [JsonProperty("remarks")]
+        public string Remarks { get; set; }
     }
 
     #endregion
@@ -505,6 +553,307 @@ namespace DDSWebAPI.Models
 
         #endregion
     }
+
+    #endregion
+
+    #region 用戶端回報相關資料模型
+
+    /// <summary>
+    /// 刀具輸出回報資料
+    /// </summary>
+    public class ToolOutputReportData
+    {
+        /// <summary>
+        /// 工單編號
+        /// </summary>
+        [JsonProperty("workOrderNo")]
+        public string WorkOrderNo { get; set; }
+
+        /// <summary>
+        /// 刀具代碼
+        /// </summary>
+        [JsonProperty("toolCode")]
+        public string ToolCode { get; set; }
+
+        /// <summary>
+        /// 刀具規格
+        /// </summary>
+        [JsonProperty("toolSpec")]
+        public string ToolSpec { get; set; }
+
+        /// <summary>
+        /// 輸出數量
+        /// </summary>
+        [JsonProperty("outputQuantity")]
+        public int OutputQuantity { get; set; }
+
+        /// <summary>
+        /// 操作時間
+        /// </summary>
+        [JsonProperty("operationTime")]
+        public DateTime OperationTime { get; set; }
+
+        /// <summary>
+        /// 操作類型
+        /// </summary>
+        [JsonProperty("operationType")]
+        public string OperationType { get; set; }
+
+        /// <summary>
+        /// 位置資訊
+        /// </summary>
+        [JsonProperty("position")]
+        public string Position { get; set; }
+
+        /// <summary>
+        /// 品質狀態
+        /// </summary>
+        [JsonProperty("qualityStatus")]
+        public string QualityStatus { get; set; }
+
+        /// <summary>
+        /// 備註
+        /// </summary>
+        [JsonProperty("remarks")]
+        public string Remarks { get; set; }
+    }
+
+    /// <summary>
+    /// 錯誤回報資料
+    /// </summary>
+    public class ErrorReportData
+    {
+        /// <summary>
+        /// 錯誤代碼
+        /// </summary>
+        [JsonProperty("errorCode")]
+        public string ErrorCode { get; set; }
+
+        /// <summary>
+        /// 錯誤訊息
+        /// </summary>
+        [JsonProperty("errorMessage")]
+        public string ErrorMessage { get; set; }
+
+        /// <summary>
+        /// 錯誤等級
+        /// </summary>
+        [JsonProperty("errorLevel")]
+        public string ErrorLevel { get; set; }
+
+        /// <summary>
+        /// 發生時間
+        /// </summary>
+        [JsonProperty("occurrenceTime")]
+        public DateTime OccurrenceTime { get; set; }
+
+        /// <summary>
+        /// 相關設備
+        /// </summary>
+        [JsonProperty("deviceCode")]
+        public string DeviceCode { get; set; }
+
+        /// <summary>
+        /// 操作人員
+        /// </summary>
+        [JsonProperty("operatorName")]
+        public string OperatorName { get; set; }
+
+        /// <summary>
+        /// 詳細描述
+        /// </summary>
+        [JsonProperty("detailDescription")]
+        public string DetailDescription { get; set; }
+
+        /// <summary>
+        /// 是否已解決
+        /// </summary>
+        [JsonProperty("isResolved")]
+        public bool IsResolved { get; set; }
+    }
+
+    /// <summary>
+    /// 機台狀態回報資料
+    /// </summary>
+    public class MachineStatusReportData
+    {
+        /// <summary>
+        /// 機台狀態
+        /// </summary>
+        [JsonProperty("machineStatus")]
+        public string MachineStatus { get; set; }
+
+        /// <summary>
+        /// 運行模式
+        /// </summary>
+        [JsonProperty("operationMode")]
+        public string OperationMode { get; set; }
+
+        /// <summary>
+        /// 當前作業
+        /// </summary>
+        [JsonProperty("currentJob")]
+        public string CurrentJob { get; set; }
+
+        /// <summary>
+        /// 處理數量
+        /// </summary>
+        [JsonProperty("processedCount")]
+        public int ProcessedCount { get; set; }
+
+        /// <summary>
+        /// 目標數量
+        /// </summary>
+        [JsonProperty("targetCount")]
+        public int TargetCount { get; set; }
+
+        /// <summary>
+        /// 完成百分比
+        /// </summary>
+        [JsonProperty("completionPercentage")]
+        public double CompletionPercentage { get; set; }
+
+        /// <summary>
+        /// 溫度資訊
+        /// </summary>
+        [JsonProperty("temperature")]
+        public double? Temperature { get; set; }
+
+        /// <summary>
+        /// 壓力資訊
+        /// </summary>
+        [JsonProperty("pressure")]
+        public double? Pressure { get; set; }
+
+        /// <summary>
+        /// 振動資訊
+        /// </summary>
+        [JsonProperty("vibration")]
+        public double? Vibration { get; set; }
+
+        /// <summary>
+        /// 報告時間
+        /// </summary>
+        [JsonProperty("reportTime")]
+        public DateTime ReportTime { get; set; }
+
+        /// <summary>
+        /// 警告訊息
+        /// </summary>
+        [JsonProperty("warnings")]
+        public List<string> Warnings { get; set; } = new List<string>();
+    }
+
+    #endregion
+
+    #region 鑽針履歷回報指令相關
+
+    /// <summary>
+    /// 鑽針履歷回報指令資料
+    /// </summary>
+    public class ToolTraceHistoryReportData
+    {
+        /// <summary>
+        /// 刀具 ID
+        /// </summary>
+        [JsonProperty("toolId")]
+        public string ToolId { get; set; }
+
+        /// <summary>
+        /// 軸向
+        /// </summary>
+        [JsonProperty("axis")]
+        public string Axis { get; set; }
+
+        /// <summary>
+        /// 機台 ID
+        /// </summary>
+        [JsonProperty("machineId")]
+        public string MachineId { get; set; }
+
+        /// <summary>
+        /// 產品代碼
+        /// </summary>
+        [JsonProperty("product")]
+        public string Product { get; set; }
+
+        /// <summary>
+        /// 磨損次數
+        /// </summary>
+        [JsonProperty("grindCount")]
+        public int GrindCount { get; set; }
+
+        /// <summary>
+        /// 托盤 ID
+        /// </summary>
+        [JsonProperty("trayId")]
+        public string TrayId { get; set; }
+
+        /// <summary>
+        /// 托盤位置
+        /// </summary>
+        [JsonProperty("traySlot")]
+        public int TraySlot { get; set; }
+
+        /// <summary>
+        /// 使用履歷
+        /// </summary>
+        [JsonProperty("history")]
+        public List<ToolHistoryItem> History { get; set; } = new List<ToolHistoryItem>();
+
+        /// <summary>
+        /// 擴充資料
+        /// </summary>
+        [JsonProperty("extendData")]
+        public object ExtendData { get; set; }
+    }
+
+    /// <summary>
+    /// 刀具使用履歷項目
+    /// </summary>
+    public class ToolHistoryItem
+    {
+        /// <summary>
+        /// 使用時間
+        /// </summary>
+        [JsonProperty("useTime")]
+        public DateTime UseTime { get; set; }
+
+        /// <summary>
+        /// 機台 ID
+        /// </summary>
+        [JsonProperty("machineId")]
+        public string MachineId { get; set; }
+
+        /// <summary>
+        /// 軸向
+        /// </summary>
+        [JsonProperty("axis")]
+        public string Axis { get; set; }
+
+        /// <summary>
+        /// 產品代碼
+        /// </summary>
+        [JsonProperty("product")]
+        public string Product { get; set; }
+
+        /// <summary>
+        /// 磨損次數
+        /// </summary>
+        [JsonProperty("grindCount")]
+        public int GrindCount { get; set; }
+
+        /// <summary>
+        /// 托盤 ID
+        /// </summary>
+        [JsonProperty("trayId")]
+        public string TrayId { get; set; }
+
+        /// <summary>
+        /// 托盤位置
+        /// </summary>
+        [JsonProperty("traySlot")]
+        public int TraySlot { get; set; }    }
 
     #endregion
 }

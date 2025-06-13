@@ -153,4 +153,46 @@ namespace DDSWebAPI.Models
         /// </summary>
         public const int ServiceUnavailable = 503;
     }
+
+    /// <summary>
+    /// 非泛型基礎回應類別（用於動態處理）
+    /// </summary>
+    public class BaseResponse
+    {
+        /// <summary>
+        /// 請求唯一識別碼
+        /// </summary>
+        [JsonProperty("requestId")]
+        public string RequestId { get; set; }
+
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// 訊息
+        /// </summary>
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        /// <summary>
+        /// 資料內容（動態物件）
+        /// </summary>
+        [JsonProperty("data")]
+        public object Data { get; set; }
+
+        /// <summary>
+        /// 時間戳記
+        /// </summary>
+        [JsonProperty("timestamp")]
+        public System.DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// 狀態碼
+        /// </summary>
+        [JsonProperty("statusCode")]
+        public int StatusCode { get; set; } = 200;
+    }
 }
