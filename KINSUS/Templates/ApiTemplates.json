@@ -1,144 +1,217 @@
 {
-  "DEVICE_STATUS_MESSAGE": {
-    "requestID": "STATUS_001",
-    "serviceName": "DEVICE_STATUS_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "operator": "OP123",
+  "SEND_MESSAGE_COMMAND": {
+    "requestID": "MSG_CMD_001",
+    "serviceName": "SEND_MESSAGE_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
     "data": [
       {
-        "statusCode": "S001",
-        "statusDesc": "設備正常運行中",
+        "message": "請補充刀具庫存！",
+        "level": "warning",
+        "priority": "high",
+        "actionType": 1,
+        "intervalSecondTime": 30,
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "DEVICE_WARNING_MESSAGE": {
-    "requestID": "WARNING_001",
-    "serviceName": "DEVICE_WARNING_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "operator": "OP123",
+  "CREATE_NEEDLE_WORKORDER_COMMAND": {
+    "requestID": "WO_CREATE_001",
+    "serviceName": "CREATE_NEEDLE_WORKORDER_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "AllPlate": 300,
+    "Pressplatens": 2,
+    "operator": "OP001",
     "data": [
       {
-        "warningCode": "W001",
-        "warningDesc": "溫度過高警告",
-        "warningLevel": "中級",
-        "start": "",
+        "taskID": "TaskID1",
+        "workOrder": "Workorder1",
+        "tPackage": "TPackage1",
+        "stackCount": 1,
+        "totalSheets": 300,
+        "startTime": "2025-06-14 16:00:00",
+        "endTime": "2025-06-14 20:00:00",
+        "priority": "normal",
+        "isUrgent": false,
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "DEVICE_PARAM_REQUEST": {
-    "requestID": "PARAM_001",
-    "serviceName": "DEVICE_PARAM_REQUEST",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
+  "DATE_MESSAGE_COMMAND": {
+    "requestID": "DATE_CMD_001",
+    "serviceName": "DATE_MESSAGE_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
     "data": [
       {
-        "activation": 1,
-        "temperature": 25.5,
-        "pressure": 10.2,
-        "speed": 60,
+        "time": "2025-06-14 16:00:00",
+        "week": 5,
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "EVENT_TIME_MESSAGE": {
-    "requestID": "EVENT_001",
-    "serviceName": "EVENT_TIME_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "operator": "OP123",
+  "SWITCH_RECIPE_COMMAND": {
+    "requestID": "RECIPE_CMD_001",
+    "serviceName": "SWITCH_RECIPE_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
+    "AllPlate": 300,
+    "Pressplatens": 2,
     "data": [
       {
-        "startTime": "",
-        "endTime": "",
-        "duration": 3600,
-        "event": 1,
+        "Tcode": "T01",
+        "Size": 0.468,
+        "HoleLimit": 500,
+        "Reshape": 1,
+        "RingColor": "#F76C5E"
+      },
+      {
+        "Tcode": "T02",
+        "Size": 0.7,
+        "HoleLimit": 500,
+        "Reshape": 1,
+        "RingColor": "#F76C4E"
+      }
+    ],
+    "extendData": null
+  },
+  "DEVICE_CONTROL_COMMAND": {
+    "requestID": "CTRL_CMD_001",
+    "serviceName": "DEVICE_CONTROL_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
+    "data": [
+      {
+        "command": 1,
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "DEVICE_HEARTBEAT_MESSAGE": {
-    "requestID": "HEARTBEAT_001",
-    "serviceName": "DEVICE_HEARTBEAT_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "operator": "OP123",
+  "WAREHOUSE_RESOURCE_QUERY_COMMAND": {
+    "requestID": "WAREHOUSE_QUERY_001",
+    "serviceName": "WAREHOUSE_RESOURCE_QUERY_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
     "data": [
       {
-        "heartBeat": 1,
-        "extendData": null
-      }
-    ],
-    "extendData": null
-  },
-  "DEVICE_KEYCHECKING_REQUEST": {
-    "requestID": "KEYCHECK_001",
-    "serviceName": "DEVICE_KEYCHECKING_REQUEST",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "data": [
-      {
-        "traceParams": {
-          "toolA": {
-            "usedCount": 120,
-            "lifespan": 1000
+        "queryConditions": [
+          {
+            "size": 0.2,
+            "reshape": 1,
+            "type": "normal"
           },
-          "toolB": {
-            "usedCount": 45,
-            "lifespan": 500
+          {
+            "size": 0.1,
+            "reshape": 1,
+            "type": "special"
+          },
+          {
+            "size": 0.3,
+            "reshape": 1,
+            "type": "special"
           }
-        },
+        ],
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "DEVICE_VEHICLE_UPLOAD": {
-    "requestID": "VEHICLE_001",
-    "serviceName": "DEVICE_VEHICLE_UPLOAD",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "operator": "OP123",
+  "TOOL_TRACE_HISTORY_QUERY_COMMAND": {
+    "requestID": "TRACE_QUERY_001",
+    "serviceName": "TOOL_TRACE_HISTORY_QUERY_COMMAND",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
     "data": [
       {
-        "vehicleCode": "BOX67890",
+        "workorder": "WO20250614001"
+      },
+      {
+        "workorder": "WO20250614002"
+      },
+      {
+        "workorder": "WO20250614003"
+      }
+    ],
+    "extendData": null
+  },
+  "TOOL_OUTPUT_REPORT_MESSAGE": {
+    "requestID": "OUTPUT_001",
+    "serviceName": "TOOL_OUTPUT_REPORT_MESSAGE",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
+    "data": [
+      {
+        "workorder": "WO20250614001",
+        "recipe": "RECIPE_T01_0468",
+        "boxorder": "BOX001",
+        "boxqrcode": "QR_BOX_20250614_001",
+        "plateqrcode": "QR_PLATE_20250614_001",
+        "qty": 50,
+        "done": true,
+        "ringid": [
+          {
+            "id": "RING001",
+            "position": 1
+          },
+          {
+            "id": "RING002",
+            "position": 2
+          },
+          {
+            "id": "RING003",
+            "position": 3
+          }
+        ]
+      }
+    ],
+    "extendData": null
+  },
+  "ERROR_REPORT_MESSAGE": {
+    "requestID": "ERROR_REPORT_001",
+    "serviceName": "ERROR_REPORT_MESSAGE",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
+    "data": [
+      {
+        "errorId": "ERR_001",
+        "errorContent": "刀具庫存不足",
+        "errorTime": "2025-06-14 15:30:00",
+        "errorResolveTime": "2025-06-14 16:00:00",
+        "extendData": null
+      },
+      {
+        "errorId": "ERR_002",
+        "errorContent": "配針機軸向異常",
+        "errorTime": "2025-06-14 14:15:00",
+        "errorResolveTime": null,
         "extendData": null
       }
     ],
     "extendData": null
   },
-  "BATCH_COMPLETE_MESSAGE": {
-    "requestID": "COMPLETE_001",
-    "serviceName": "BATCH_COMPLETE_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
+  "MACHINE_STATUS_REPORT_MESSAGE": {
+    "requestID": "MACHINE_STATUS_001",
+    "serviceName": "MACHINE_STATUS_REPORT_MESSAGE",
+    "timeStamp": "2025-06-14 16:00:00",
+    "devCode": "KINSUS001",
+    "operator": "OP001",
     "data": [
       {
-        "vehicleCode": "BOX67890",
-        "okNum": 95,
-        "ngNum": 5,
-        "extendData": null
-      }
-    ],
-    "extendData": null
-  },
-  "BATCH_REPORTED_MESSAGE": {
-    "requestID": "REPORTED_001",
-    "serviceName": "BATCH_REPORTED_MESSAGE",
-    "timeStamp": "",
-    "devCode": "DEVICE001",
-    "data": [
-      {
-        "gfNum": "6",
-        "pnum": 10,
-        "vehicleCode": "BOX67890",
+        "machineStatus": "run",
+        "statusTime": "2025-06-14 16:00:00",
         "extendData": null
       }
     ],

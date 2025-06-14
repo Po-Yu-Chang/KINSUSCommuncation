@@ -80,11 +80,9 @@
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="ApiGuideWindow.xaml.cs">
+    </Page>    <Compile Include="ApiGuideWindow.xaml.cs">
       <DependentUpon>ApiGuideWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="API\HttpServer.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -98,9 +96,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Model\ApiDataModels.cs" />
-    <Compile Include="Model\BaseRequest.cs" />
-    <Compile Include="Model\BaseResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -123,9 +118,14 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <ProjectReference Include="DDSWebAPI\DDSWebAPI.csproj">
+      <Project>{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}</Project>
+      <Name>DDSWebAPI</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Html\MainFlow.html">

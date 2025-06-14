@@ -14,8 +14,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
-        <TextBlock Grid.Row="0" Text="OthinCloud 系統流程圖" 
+          <TextBlock Grid.Row="0" Text="KINSUS 配針機系統流程圖" 
                    FontSize="18" FontWeight="Bold" Margin="0,0,0,10" />
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <Grid>                <Image x:Name="imgFlowChart" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed" />
@@ -24,7 +23,7 @@
             </Grid>
         </ScrollViewer>
           <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button x:Name="btnShowFlowChart" Content="顯示流程圖" Width="100" Click="btnShowFlowChart_Click" />
+            <Button x:Name="btnShowFlowChart" Content="顯示視覺化流程圖" Width="120" Click="btnShowFlowChart_Click" />
             <Button x:Name="btnClose" Content="關閉" Width="80" Margin="10,0,0,0" Click="CloseButton_Click" />
         </StackPanel>
     </Grid>

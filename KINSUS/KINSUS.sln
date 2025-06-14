@@ -5,7 +5,7 @@ VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KINSUS", "KINSUS.csproj", "{2A0FBF7E-F339-46D3-8ADA-AA641ECFCB96}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDSWebAPI", "..\DDSWebAPI\DDSWebAPI.csproj", "{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDSWebAPI", "DDSWebAPI\DDSWebAPI.csproj", "{B8A5F234-8C7D-4A9B-9E12-3F45D6E789AB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +24,15 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+	EndGlobalSection
+EndGlobal
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {947ED247-F97C-48C2-988F-C92CE1825121}
 	EndGlobalSection
 EndGlobal

@@ -171,20 +171,22 @@
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="0,10,0,0"
-                    Orientation="Horizontal">
-                    <ComboBox
+                    Orientation="Horizontal">                    <ComboBox
                         x:Name="cmbApiFunction"
-                        Width="220"
+                        Width="280"
                         Margin="0,0,10,0">
-                        <ComboBoxItem Content="設備狀態資訊" Tag="DEVICE_STATUS_MESSAGE" />
-                        <ComboBoxItem Content="設備報警資訊" Tag="DEVICE_WARNING_MESSAGE" />
-                        <ComboBoxItem Content="設備生產實時數據監控" Tag="DEVICE_PARAM_REQUEST" />
-                        <ComboBoxItem Content="設備事件起止時間上傳" Tag="EVENT_TIME_MESSAGE" />
-                        <ComboBoxItem Content="設備聯網狀態監控" Tag="DEVICE_HEARTBEAT_MESSAGE" />
-                        <ComboBoxItem Content="設備點檢參數報告" Tag="DEVICE_KEYCHECKING_REQUEST" />
-                        <ComboBoxItem Content="設備採集到盒子碼上報" Tag="DEVICE_VEHICLE_UPLOAD" />
-                        <ComboBoxItem Content="盒子做完上報資訊" Tag="BATCH_COMPLETE_MESSAGE" />
-                        <ComboBoxItem Content="良品盒生成完成上報" Tag="BATCH_REPORTED_MESSAGE" />
+                        <!-- 伺服端角色 API（接收 MES/IoT 指令） -->
+                        <ComboBoxItem Content="遠程資訊下發指令" Tag="SEND_MESSAGE_COMMAND" />
+                        <ComboBoxItem Content="派針工單建立指令" Tag="CREATE_NEEDLE_WORKORDER_COMMAND" />
+                        <ComboBoxItem Content="設備時間同步指令" Tag="DATE_MESSAGE_COMMAND" />
+                        <ComboBoxItem Content="刀具工鑽袋檔發送指令" Tag="SWITCH_RECIPE_COMMAND" />
+                        <ComboBoxItem Content="設備啟停控制指令" Tag="DEVICE_CONTROL_COMMAND" />
+                        <ComboBoxItem Content="倉庫資源查詢指令" Tag="WAREHOUSE_RESOURCE_QUERY_COMMAND" />
+                        <ComboBoxItem Content="鑽針履歷查詢指令" Tag="TOOL_TRACE_HISTORY_QUERY_COMMAND" />
+                        <!-- 用戶端角色 API（主動上報至 MES/IoT） -->
+                        <ComboBoxItem Content="配針回報上傳" Tag="TOOL_OUTPUT_REPORT_MESSAGE" />
+                        <ComboBoxItem Content="錯誤回報上傳" Tag="ERROR_REPORT_MESSAGE" />
+                        <ComboBoxItem Content="機臺狀態上報" Tag="MACHINE_STATUS_REPORT_MESSAGE" />
                     </ComboBox>
                     <Button
                         x:Name="btnSendRequest"
@@ -275,20 +277,22 @@
                         <TextBlock
                             Margin="0,0,10,0"
                             VerticalAlignment="Center"
-                            Text="選擇範本:" />
-                        <ComboBox
+                            Text="選擇範本:" />                        <ComboBox
                             x:Name="cmbTemplates"
-                            Width="250"
+                            Width="320"
                             SelectionChanged="cmbTemplates_SelectionChanged">
-                            <ComboBoxItem Content="設備狀態資訊 (DEVICE_STATUS_MESSAGE)" />
-                            <ComboBoxItem Content="設備報警資訊 (DEVICE_WARNING_MESSAGE)" />
-                            <ComboBoxItem Content="設備生產實時數據監控 (DEVICE_PARAM_REQUEST)" />
-                            <ComboBoxItem Content="設備事件起止時間上傳 (EVENT_TIME_MESSAGE)" />
-                            <ComboBoxItem Content="設備聯網狀態監控 (DEVICE_HEARTBEAT_MESSAGE)" />
-                            <ComboBoxItem Content="設備點檢參數報告 (DEVICE_KEYCHECKING_REQUEST)" />
-                            <ComboBoxItem Content="設備採集到盒子碼上報 (DEVICE_VEHICLE_UPLOAD)" />
-                            <ComboBoxItem Content="盒子做完上報資訊 (BATCH_COMPLETE_MESSAGE)" />
-                            <ComboBoxItem Content="良品盒生成完成上報 (BATCH_REPORTED_MESSAGE)" />
+                            <!-- 伺服端角色 API（接收 MES/IoT 指令） -->
+                            <ComboBoxItem Content="遠程資訊下發指令 (SEND_MESSAGE_COMMAND)" />
+                            <ComboBoxItem Content="派針工單建立指令 (CREATE_NEEDLE_WORKORDER_COMMAND)" />
+                            <ComboBoxItem Content="設備時間同步指令 (DATE_MESSAGE_COMMAND)" />
+                            <ComboBoxItem Content="刀具工鑽袋檔發送指令 (SWITCH_RECIPE_COMMAND)" />
+                            <ComboBoxItem Content="設備啟停控制指令 (DEVICE_CONTROL_COMMAND)" />
+                            <ComboBoxItem Content="倉庫資源查詢指令 (WAREHOUSE_RESOURCE_QUERY_COMMAND)" />
+                            <ComboBoxItem Content="鑽針履歷查詢指令 (TOOL_TRACE_HISTORY_QUERY_COMMAND)" />
+                            <!-- 用戶端角色 API（主動上報至 MES/IoT） -->
+                            <ComboBoxItem Content="配針回報上傳 (TOOL_OUTPUT_REPORT_MESSAGE)" />
+                            <ComboBoxItem Content="錯誤回報上傳 (ERROR_REPORT_MESSAGE)" />
+                            <ComboBoxItem Content="機臺狀態上報 (MACHINE_STATUS_REPORT_MESSAGE)" />
                         </ComboBox>
                         <Button
                             x:Name="btnApplyTemplate"

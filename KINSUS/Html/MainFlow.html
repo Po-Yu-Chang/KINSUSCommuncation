@@ -2,41 +2,126 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Mermaid Test</title>
+    <title>KINSUS 配針機系統流程圖</title>
     <script src="../Scripts/mermaid.min.js"></script>
-
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 20px;
+        }
+        .mermaid {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+    </style>
     <script>
         mermaid.initialize({
             startOnLoad: true,
             securityLevel: 'loose',
-            logLevel: 'debug'
+            logLevel: 'info',
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'cardinal'
+            }
         });
     </script>
 </head>
 <body>
+    <h1>KINSUS 配針機系統流程圖</h1>
     <div class="mermaid">
         flowchart TD
-        A[开始] --> B[扫描盒码]
-        B --> C[请求MES系统获取数据]
-        C --> D{判断研磨参数是否匹配}
-        D -- 不同 --> E[拒绝生产]
-        D -- 相同 --> F[检查盒子状态]
-        F -- NG --> E
-        F -- OK --> G[开始生产]
-        G --> H[判断意图]
-        H --> I[接收指令]
-        I --> J[获取并解析数据]
-        J --> K[生产完成]
-        K --> L[上报盒码、良品与不良品数量]
-        L --> M{判断是否为最后一个盒子}
-        M -- 是 --> N[人工结束生产]
-        N --> O[上报盒码和研磨参数]
-        O --> P[记录编号结账]
-        P --> Q[结束流程]
-        M -- 否 --> R{添加新的盒子？}
-        R -- 否 --> Q
-        R -- 是 --> S[进行验证]
-        S --> B
+            Start([系統啟動]) --> Mode{選擇操作模式}
+            
+            %% 模式選擇
+            Mode --> ServerMode[伺服端模式<br/>接收 MES/IoT 指令]
+            Mode --> ClientMode[用戶端模式<br/>主動上報資訊]
+            Mode --> DualMode[雙向模式<br/>同時支援兩種角色]
+            
+            %% 伺服端流程
+            ServerMode --> StartServer[啟動伺服器<br/>監聽端口 8085]
+            StartServer --> WaitCmd[等待接收指令]
+            
+            WaitCmd --> SendMsg[SEND_MESSAGE_COMMAND<br/>遠程資訊下發]
+            WaitCmd --> CreateWO[CREATE_NEEDLE_WORKORDER_COMMAND<br/>派針工單建立]
+            WaitCmd --> SyncTime[DATE_MESSAGE_COMMAND<br/>設備時間同步]
+            WaitCmd --> SwitchRecipe[SWITCH_RECIPE_COMMAND<br/>刀具工鑽袋檔發送]
+            WaitCmd --> DeviceCtrl[DEVICE_CONTROL_COMMAND<br/>設備啟停控制]
+            WaitCmd --> QueryWarehouse[WAREHOUSE_RESOURCE_QUERY_COMMAND<br/>倉庫資源查詢]
+            WaitCmd --> QueryHistory[TOOL_TRACE_HISTORY_QUERY_COMMAND<br/>鑽針履歷查詢]
+            
+            %% 指令處理
+            SendMsg --> ProcessMsg[處理訊息資訊]
+            CreateWO --> ProcessWO[處理工單建立]
+            SyncTime --> ProcessTime[同步設備時間]
+            SwitchRecipe --> ProcessRecipe[載入工鑽袋檔]
+            DeviceCtrl --> ProcessCtrl[執行設備控制]
+            QueryWarehouse --> ProcessWarehouse[查詢倉庫資源]
+            QueryHistory --> ProcessHistory[查詢履歷記錄]
+            
+            ProcessMsg --> Response1[回應處理結果]
+            ProcessWO --> Response2[回應資源檢查結果]
+            ProcessTime --> Response3[回應時間同步結果]
+            ProcessRecipe --> Response4[回應工鑽袋檔狀態]
+            ProcessCtrl --> Response5[回應控制執行結果]
+            ProcessWarehouse --> Response6[回應倉庫資源資訊]
+            ProcessHistory --> Response7[回應履歷查詢結果]
+            
+            Response1 --> WaitCmd
+            Response2 --> WaitCmd
+            Response3 --> WaitCmd
+            Response4 --> WaitCmd
+            Response5 --> WaitCmd
+            Response6 --> WaitCmd
+            Response7 --> WaitCmd
+            
+            %% 用戶端流程
+            ClientMode --> SetIoTEndpoint[設定 IoT 端點位址]
+            SetIoTEndpoint --> SelectAPI[選擇 API 功能]
+            
+            SelectAPI --> ToolOutput[TOOL_OUTPUT_REPORT_MESSAGE<br/>配針回報上傳]
+            SelectAPI --> ErrorReport[ERROR_REPORT_MESSAGE<br/>錯誤回報上傳]
+            SelectAPI --> StatusReport[MACHINE_STATUS_REPORT_MESSAGE<br/>機臺狀態上報]
+            
+            ToolOutput --> SendToolReport[發送配針完成資訊]
+            ErrorReport --> SendErrorReport[發送錯誤資訊]
+            StatusReport --> SendStatusReport[發送機臺狀態]
+            
+            SendToolReport --> IoTResponse1[接收 IoT 回應]
+            SendErrorReport --> IoTResponse2[接收 IoT 回應]
+            SendStatusReport --> IoTResponse3[接收 IoT 回應]
+            
+            IoTResponse1 --> SelectAPI
+            IoTResponse2 --> SelectAPI
+            IoTResponse3 --> SelectAPI
+            
+            %% 雙向模式
+            DualMode --> StartServer
+            DualMode --> SetIoTEndpoint
+            
+            %% 樣式定義
+            classDef startEnd fill:#e1f5fe
+            classDef process fill:#f3e5f5
+            classDef decision fill:#fff9c4
+            classDef server fill:#e8f5e8
+            classDef client fill:#fce4ec
+            classDef api fill:#f0f4c3
+            
+            class Start,Response1,Response2,Response3,Response4,Response5,Response6,Response7,IoTResponse1,IoTResponse2,IoTResponse3 startEnd
+            class ProcessMsg,ProcessWO,ProcessTime,ProcessRecipe,ProcessCtrl,ProcessWarehouse,ProcessHistory,SendToolReport,SendErrorReport,SendStatusReport process
+            class Mode decision
+            class ServerMode,StartServer,WaitCmd server
+            class ClientMode,SetIoTEndpoint,SelectAPI client
+            class SendMsg,CreateWO,SyncTime,SwitchRecipe,DeviceCtrl,QueryWarehouse,QueryHistory,ToolOutput,ErrorReport,StatusReport api
     </div>
 </body>
 </html>

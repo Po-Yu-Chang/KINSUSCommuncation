@@ -15,8 +15,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
-        <TextBlock Grid.Row="0" Text="Postman 測試範例 - HTTP 伺服器 API 測試" 
+          <TextBlock Grid.Row="0" Text="KINSUS 配針機 API 測試指南" 
                    FontSize="18" FontWeight="Bold" Margin="0,0,0,10" />
         
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

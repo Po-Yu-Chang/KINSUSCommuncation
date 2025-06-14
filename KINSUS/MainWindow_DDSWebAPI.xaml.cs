@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using System.Windows.Media;
 using DDSWebAPI.Services;
 using DDSWebAPI.Models;
 using Newtonsoft.Json;
@@ -35,13 +34,12 @@ namespace KINSUS
         /// <summary>
         /// 日期時間顯示計時器
         /// </summary>
-        private DispatcherTimer _dateTimeTimer;        /// <summary>
+        private DispatcherTimer _dateTimeTimer;
+
+        /// <summary>
         /// API 請求範本字典
         /// </summary>
-        private Dictionary<string, string> _apiTemplates;        /// <summary>
-        /// 心跳計時器
-        /// </summary>
-        private DispatcherTimer _heartbeatTimer = new DispatcherTimer();
+        private Dictionary<string, string> _apiTemplates;
 
         /// <summary>
         /// 操作模式列舉
@@ -144,10 +142,11 @@ namespace KINSUS
             _dateTimeTimer = new DispatcherTimer();
             _dateTimeTimer.Interval = TimeSpan.FromSeconds(1);
             _dateTimeTimer.Tick += (s, e) =>
-            {                // 更新日期時間顯示
-                if (txtDateTime != null)
+            {
+                // 假設有 lblDateTime 控件
+                if (lblDateTime != null)
                 {
-                    txtDateTime.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    lblDateTime.Content = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 }
             };
             _dateTimeTimer.Start();
@@ -185,80 +184,43 @@ namespace KINSUS
                 CreateDefaultTemplates();
                 PopulateTemplateComboBox();
             }
-        }        /// <summary>
-        /// 建立預設範本（當 JSON 檔案不存在時使用）
+        }
+
+        /// <summary>
+        /// 建立預設範本
         /// </summary>
         private void CreateDefaultTemplates()
         {
             _apiTemplates = new Dictionary<string, string>
             {
-                ["SEND_MESSAGE_COMMAND"] = JsonConvert.SerializeObject(new
+                ["查詢設備狀態"] = JsonConvert.SerializeObject(new
                 {
-                    requestID = "MSG_CMD_001",
-                    serviceName = "SEND_MESSAGE_COMMAND",
-                    timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    devCode = "KINSUS001",
-                    @operator = "OP001",
-                    data = new[]
-                    {
-                        new
-                        {
-                            message = "系統訊息",
-                            level = "info",
-                            priority = "normal",
-                            actionType = 1,
-                            intervalSecondTime = 30,
-                            extendData = (object)null
-                        }
-                    },
-                    extendData = (object)null
+                    DeviceCode = "DEVICE001",
+                    RequestType = "GetDeviceStatus"
                 }, Formatting.Indented),
                 
-                ["TOOL_OUTPUT_REPORT_MESSAGE"] = JsonConvert.SerializeObject(new
+                ["建立工單"] = JsonConvert.SerializeObject(new
                 {
-                    requestID = "TOOL_RPT_001",
-                    serviceName = "TOOL_OUTPUT_REPORT_MESSAGE",
-                    timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    devCode = "KINSUS001",
-                    @operator = "OP001",
-                    data = new[]
+                    DeviceCode = "DEVICE001",
+                    RequestType = "CreateWorkOrder",
+                    WorkOrderData = new
                     {
-                        new
-                        {
-                            reportType = "TOOL_OUTPUT",
-                            toolInfo = new
-                            {
-                                toolId = "TOOL001",
-                                toolType = "DRILL",
-                                location = "A01"
-                            },
-                            extendData = (object)null
-                        }
-                    },
-                    extendData = (object)null
+                        OrderId = "WO001",
+                        PartNumber = "PART001",
+                        Quantity = 100
+                    }
                 }, Formatting.Indented),
                 
-                ["ERROR_REPORT_MESSAGE"] = JsonConvert.SerializeObject(new
+                ["結束工單"] = JsonConvert.SerializeObject(new
                 {
-                    requestID = "ERR_RPT_001",
-                    serviceName = "ERROR_REPORT_MESSAGE",
-                    timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    devCode = "KINSUS001",
-                    @operator = "OP001",
-                    data = new[]
-                    {
-                        new
-                        {
-                            errorCode = "E001",
-                            errorMessage = "系統錯誤",
-                            severity = "HIGH",
-                            extendData = (object)null
-                        }
-                    },
-                    extendData = (object)null
+                    DeviceCode = "DEVICE001",
+                    RequestType = "CompleteWorkOrder",
+                    OrderId = "WO001"
                 }, Formatting.Indented)
             };
-        }/// <summary>
+        }
+
+        /// <summary>
         /// 填充範本下拉選單
         /// </summary>
         private void PopulateTemplateComboBox()
@@ -266,38 +228,14 @@ namespace KINSUS
             if (cmbTemplates != null)
             {
                 cmbTemplates.Items.Clear();
-                
-                // 使用 API 範本中的鍵值建立對應的顯示文字
-                var apiDisplayNames = new Dictionary<string, string>
-                {
-                    ["SEND_MESSAGE_COMMAND"] = "遠程資訊下發指令 (SEND_MESSAGE_COMMAND)",
-                    ["CREATE_NEEDLE_WORKORDER_COMMAND"] = "派針工單建立指令 (CREATE_NEEDLE_WORKORDER_COMMAND)",
-                    ["DATE_MESSAGE_COMMAND"] = "設備時間同步指令 (DATE_MESSAGE_COMMAND)",
-                    ["SWITCH_RECIPE_COMMAND"] = "刀具工鑽袋檔發送指令 (SWITCH_RECIPE_COMMAND)",
-                    ["DEVICE_CONTROL_COMMAND"] = "設備啟停控制指令 (DEVICE_CONTROL_COMMAND)",
-                    ["WAREHOUSE_RESOURCE_QUERY_COMMAND"] = "倉庫資源查詢指令 (WAREHOUSE_RESOURCE_QUERY_COMMAND)",
-                    ["TOOL_TRACE_HISTORY_QUERY_COMMAND"] = "鑽針履歷查詢指令 (TOOL_TRACE_HISTORY_QUERY_COMMAND)",
-                    ["TOOL_OUTPUT_REPORT_MESSAGE"] = "配針回報上傳 (TOOL_OUTPUT_REPORT_MESSAGE)",
-                    ["ERROR_REPORT_MESSAGE"] = "錯誤回報上傳 (ERROR_REPORT_MESSAGE)",
-                    ["MACHINE_STATUS_REPORT_MESSAGE"] = "機臺狀態上報 (MACHINE_STATUS_REPORT_MESSAGE)"
-                };
-                
                 foreach (var template in _apiTemplates.Keys)
                 {
-                    string displayName = apiDisplayNames.ContainsKey(template) 
-                        ? apiDisplayNames[template] 
-                        : template;
-                    cmbTemplates.Items.Add(new ComboBoxItem { Content = displayName });
+                    cmbTemplates.Items.Add(new ComboBoxItem { Content = template });
                 }
                 
                 if (cmbTemplates.Items.Count > 0)
                 {
                     cmbTemplates.SelectedIndex = 0;
-                    // 載入第一個範本
-                    if (cmbTemplates.SelectedItem is ComboBoxItem firstItem)
-                    {
-                        LoadApiTemplate(firstItem.Content.ToString());
-                    }
                 }
             }
         }
@@ -364,10 +302,11 @@ namespace KINSUS
         private void OnClientConnected(object sender, ClientConnectedEventArgs e)
         {
             Dispatcher.Invoke(() =>
-            {                var connection = new ClientConnection
+            {
+                var connection = new ClientConnection
                 {
                     Id = e.ClientId,
-                    IpAddress = e.ClientIp,
+                    IpAddress = e.IpAddress,
                     ConnectTime = DateTime.Now,
                     LastActivityTime = DateTime.Now,
                     RequestType = "Connected"
@@ -376,8 +315,8 @@ namespace KINSUS
                 _clientConnections.Add(connection);
                 OnPropertyChanged(nameof(ClientCount));
                 
-                UpdateStatus($"用戶端已連接: {e.ClientIp}");
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] 用戶端連接: {e.ClientIp}");
+                UpdateStatus($"用戶端已連接: {e.IpAddress}");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] 用戶端連接: {e.IpAddress}");
             });
         }
 
@@ -500,7 +439,7 @@ namespace KINSUS
             try
             {
                 string endpoint = txtIotEndpoint.Text.Trim();
-                string requestBody = txtTemplate.Text.Trim();
+                string requestBody = txtRequestBody.Text.Trim();
                 
                 if (string.IsNullOrEmpty(endpoint))
                 {
@@ -521,13 +460,17 @@ namespace KINSUS
             {
                 MessageBox.Show($"發送 API 請求失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// 清除日誌按鈕點擊事件
         /// </summary>
         private void btnClearLog_Click(object sender, RoutedEventArgs e)
         {
-            txtServerMessages?.Clear();
-            txtClientMessages?.Clear();
+            if (txtLog != null)
+            {
+                txtLog.Clear();
+            }
         }
 
         /// <summary>
@@ -657,77 +600,52 @@ namespace KINSUS
                     EnableClientControls(true);
                     break;
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// 啟用/停用伺服器控件
         /// </summary>
         private void EnableServerControls(bool enabled)
         {
-            if (btnConnect != null) btnConnect.IsEnabled = enabled;
-            if (btnDisconnect != null) btnDisconnect.IsEnabled = !enabled;
+            if (btnStartServer != null) btnStartServer.IsEnabled = enabled;
+            if (btnStopServer != null) btnStopServer.IsEnabled = enabled;
             if (txtServerUrl != null) txtServerUrl.IsEnabled = enabled;
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// 啟用/停用用戶端控件
         /// </summary>
         private void EnableClientControls(bool enabled)
         {
             if (btnSendRequest != null) btnSendRequest.IsEnabled = enabled;
             if (txtIotEndpoint != null) txtIotEndpoint.IsEnabled = enabled;
-            if (txtTemplate != null) txtTemplate.IsEnabled = enabled;
+            if (txtRequestBody != null) txtRequestBody.IsEnabled = enabled;
             if (cmbTemplates != null) cmbTemplates.IsEnabled = enabled;
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// 載入 API 範本
         /// </summary>
-        private void LoadApiTemplate(string templateDescription)
+        private void LoadApiTemplate(string templateName)
         {
-            try
+            if (_apiTemplates.ContainsKey(templateName))
             {
-                // 從描述中提取 API 名稱（括號內的內容）
-                string apiName = ExtractApiNameFromDescription(templateDescription);
-                
-                if (!string.IsNullOrEmpty(apiName) && _apiTemplates.ContainsKey(apiName))
+                if (txtRequestBody != null)
                 {
-                    if (txtTemplate != null)
-                    {
-                        txtTemplate.Text = _apiTemplates[apiName];
-                        UpdateStatus($"已載入 {apiName} 範本");
-                    }
+                    txtRequestBody.Text = _apiTemplates[templateName];
                 }
-                else
-                {
-                    UpdateStatus($"找不到範本: {apiName}");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"載入範本失敗: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 從描述文字中提取 API 名稱
-        /// </summary>
-        private string ExtractApiNameFromDescription(string description)
-        {
-            if (string.IsNullOrEmpty(description))
-                return string.Empty;
-
-            // 尋找括號內的內容
-            int startIndex = description.LastIndexOf('(');
-            int endIndex = description.LastIndexOf(')');
-            
-            if (startIndex >= 0 && endIndex > startIndex)
-            {
-                return description.Substring(startIndex + 1, endIndex - startIndex - 1).Trim();
-            }
-            
-            return description; // 如果沒有括號，直接返回原始描述
-        }/// <summary>
         /// 更新狀態列
         /// </summary>
         private void UpdateStatus(string message)
         {
-            if (txtStatus != null)
-                txtStatus.Text = message;
+            if (lblStatus != null)
+            {
+                lblStatus.Content = message;
+            }
         }
 
         /// <summary>
@@ -735,10 +653,10 @@ namespace KINSUS
         /// </summary>
         private void AppendLog(string message)
         {
-            if (txtServerMessages != null)
+            if (txtLog != null)
             {
-                txtServerMessages.AppendText(message + Environment.NewLine);
-                txtServerMessages.ScrollToEnd();
+                txtLog.AppendText(message + Environment.NewLine);
+                txtLog.ScrollToEnd();
             }
         }
 
@@ -751,186 +669,5 @@ namespace KINSUS
         }
 
         #endregion
-
-        #region 缺少的事件處理方法
-
-        /// <summary>
-        /// 連接按鈕點擊事件 (啟動伺服器)
-        /// </summary>
-        private async void btnConnect_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {                
-                if (_ddsService == null)
-                {
-                    MessageBox.Show("DDS WebAPI 服務未初始化", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                string serverUrl = txtServerUrl.Text.Trim();
-                if (string.IsNullOrEmpty(serverUrl))
-                {
-                    MessageBox.Show("請輸入伺服器位址", "錯誤", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }                await _ddsService.StartServerAsync(serverUrl);
-                UpdateStatus("伺服器已啟動");
-                EnableServerControls(false);
-                if (rectStatus != null) rectStatus.Fill = new SolidColorBrush(Colors.Green);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"啟動伺服器失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                UpdateStatus("伺服器啟動失敗");
-            }
-        }
-
-        /// <summary>
-        /// 斷開連接按鈕點擊事件 (停止伺服器)
-        /// </summary>
-        private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {                
-                if (_ddsService != null)
-                {                    await _ddsService.StopServerAsync();
-                    UpdateStatus("伺服器已停止");
-                    EnableServerControls(true);
-                    if (rectStatus != null) rectStatus.Fill = new SolidColorBrush(Colors.Gray);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"停止伺服器失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 設定資料按鈕點擊事件
-        /// </summary>
-        private void btnConfigData_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // 實作設定資料功能
-                MessageBox.Show("設定資料功能待實作", "資訊", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"設定資料失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 開始心跳按鈕點擊事件
-        /// </summary>
-        private void btnStartHeartbeat_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // 實作開始心跳功能                _heartbeatTimer?.Start();
-                if (rectHeartbeatStatus != null) rectHeartbeatStatus.Fill = new SolidColorBrush(Colors.Green);
-                UpdateStatus("心跳已開始");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"開始心跳失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 停止心跳按鈕點擊事件
-        /// </summary>
-        private void btnStopHeartbeat_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {                // 實作停止心跳功能
-                _heartbeatTimer?.Stop();
-                if (rectHeartbeatStatus != null) rectHeartbeatStatus.Fill = new SolidColorBrush(Colors.Gray);
-                UpdateStatus("心跳已停止");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"停止心跳失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 套用範本按鈕點擊事件
-        /// </summary>
-        private void btnApplyTemplate_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (cmbTemplates.SelectedItem is ComboBoxItem selectedItem)
-                {
-                    string templateName = selectedItem.Content.ToString();
-                    LoadApiTemplate(templateName);
-                    UpdateStatus($"已套用範本: {templateName}");
-                }
-                else
-                {
-                    MessageBox.Show("請選擇一個範本", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"套用範本失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }        /// <summary>
-        /// 儲存範本按鈕點擊事件
-        /// </summary>
-        private void btnSaveTemplate_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // 簡化版本，直接使用預設名稱或讓用戶在外部文件中修改
-                string templateName = $"自訂範本_{DateTime.Now:yyyyMMdd_HHmmss}";
-                
-                string templateContent = txtTemplate.Text;
-                if (!string.IsNullOrEmpty(templateContent))
-                {
-                    _apiTemplates[templateName] = templateContent;
-                    SaveApiTemplates();
-                    UpdateStatus($"範本已儲存: {templateName}");
-                    MessageBox.Show($"範本已儲存: {templateName}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("範本內容不能為空", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"儲存範本失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 儲存 API 範本到檔案
-        /// </summary>
-        private void SaveApiTemplates()
-        {
-            try
-            {
-                string templatesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "ApiTemplates.json");
-                string directory = Path.GetDirectoryName(templatesPath);
-                
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                
-                string json = JsonConvert.SerializeObject(_apiTemplates, Formatting.Indented);
-                File.WriteAllText(templatesPath, json);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"儲存範本失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        #endregion
-
-        // 原有的程式碼...
     }
 }
