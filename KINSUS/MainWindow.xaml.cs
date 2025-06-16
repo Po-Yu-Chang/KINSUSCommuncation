@@ -1566,12 +1566,9 @@ namespace KINSUS
         /// </summary>
         private async void btnTestServer_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
+            try            {
                 UpdateStatus("正在執行完整伺服器測試...");
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔍 開始伺服器健康檢查");
-                
-                btnTestServer.IsEnabled = false;
                 
                 // 1. 檢查伺服器狀態
                 bool serverRunning = _ddsService?.IsServerRunning == true;
@@ -1626,28 +1623,21 @@ namespace KINSUS
                     UpdateStatus("❌ 伺服器測試發現問題");
                     MessageBox.Show("⚠️ 伺服器測試發現問題\n\n請檢查：\n• 伺服器是否正確啟動\n• 網路連接是否正常\n• 防火牆設定是否正確", 
                         "測試結果", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
+                }            }
             catch (Exception ex)
             {
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 伺服器測試發生異常: {ex.Message}");
-                UpdateStatus($"❌ 伺服器測試失敗: {ex.Message}");
+                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 伺服器測試發生異常: {ex.Message}");                UpdateStatus($"❌ 伺服器測試失敗: {ex.Message}");
                 MessageBox.Show($"測試過程中發生錯誤:\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            finally
-            {
-                btnTestServer.IsEnabled = true;
-            }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// 重新整理用戶端按鈕點擊事件（增強版）
         /// </summary>
-        private void btnRefreshClients_Click(object sender, RoutedEventArgs e)
-        {
+        private void btnRefreshClients_Click(object sender, RoutedEventArgs e)        {
             try
             {
-                btnRefreshClients.IsEnabled = false;
                 UpdateStatus("正在重新整理用戶端列表...");
-                
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔄 開始重新整理用戶端列表");
                 
                 // 記錄刷新前的連線數
@@ -1731,10 +1721,10 @@ namespace KINSUS
                 MessageBox.Show($"重新整理失敗:\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
-            {
-                btnRefreshClients.IsEnabled = true;
-            }
-        }/// <summary>
+            {            }
+        }
+
+        /// <summary>
         /// 踢除用戶端按鈕點擊事件
         /// </summary>
         private async void btnKickClient_Click(object sender, RoutedEventArgs e)
@@ -2173,16 +2163,13 @@ namespace KINSUS
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 連線品質測試異常: {ex.Message}");
                 return false;
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// 連線品質測試按鈕點擊事件
         /// </summary>
         private async void btnConnectionQuality_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                btnConnectionQuality.IsEnabled = false;
                 UpdateStatus("正在執行連線品質測試...");
                 
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🧪 開始全面連線品質檢測");
@@ -2206,8 +2193,7 @@ namespace KINSUS
                 else
                 {
                     AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ⚠️ 連線品質測試完成 - 結果：需要改善");
-                    UpdateStatus("⚠️ 連線品質測試：需要改善");
-                    MessageBox.Show("⚠️ 連線品質測試完成\n\n測試結果：需要改善\n\n建議檢查：\n• 網路連接狀況\n• 伺服器負載\n• 防火牆設定\n• 系統資源使用", 
+                    UpdateStatus("⚠️ 連線品質測試：需要改善");                    MessageBox.Show("⚠️ 連線品質測試完成\n\n測試結果：需要改善\n\n建議檢查：\n• 網路連接狀況\n• 伺服器負載\n• 防火牆設定\n• 系統資源使用", 
                         "品質測試結果", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
@@ -2216,9 +2202,6 @@ namespace KINSUS
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 連線品質測試異常: {ex.Message}");
                 UpdateStatus($"❌ 連線品質測試失敗: {ex.Message}");
                 MessageBox.Show($"連線品質測試失敗:\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally            {
-                btnConnectionQuality.IsEnabled = true;
             }
         }
 
