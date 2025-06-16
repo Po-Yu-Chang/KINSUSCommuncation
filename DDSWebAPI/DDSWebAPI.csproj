@@ -42,19 +42,63 @@
       <HintPath>..\KINSUS\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>  <ItemGroup>
+    <!-- 範例程式 -->
     <Compile Include="Examples\ConsoleExample.cs" />
+    <Compile Include="Examples\HttpServerServiceExample.cs" />
+    <Compile Include="Examples\ServiceImplementations.cs" />
+    <Compile Include="Examples\CompleteExample.cs" />
     <Compile Include="DemoProgram.cs" />
+    
+    <!-- 介面定義 -->
+    <Compile Include="Interfaces\IDatabaseService.cs" />
+    <Compile Include="Interfaces\IWarehouseQueryService.cs" />
+    <Compile Include="Interfaces\IWorkflowTaskService.cs" />
+    <Compile Include="Interfaces\IGlobalConfigService.cs" />
+    <Compile Include="Interfaces\IUtilityService.cs" />    <!-- 資料模型 -->
     <Compile Include="Models\BaseRequest.cs" />
     <Compile Include="Models\BaseResponse.cs" />
     <Compile Include="Models\ClientConnection.cs" />
     <Compile Include="Models\MessageEventArgs.cs" />
-    <Compile Include="Models\ApiDataModels.cs" />    <Compile Include="Services\DDSWebAPIService.cs" />
+    <Compile Include="Models\ApiDataModels.cs" />
+    <Compile Include="Models\WorkorderModels.cs" />
+    <Compile Include="Models\Requests\SpeedRequest.cs" />
+    <Compile Include="Models\Requests\ClampRequest.cs" />
+    <Compile Include="Models\Requests\InMaterialRequest.cs" />
+    <Compile Include="Models\Requests\OutMaterialRequest.cs" />
+    <Compile Include="Models\Storage\StorageInfo.cs" />
+    
+    <!-- 事件參數 -->
+    <Compile Include="Events\ServerStatusChangedEventArgs.cs" />
+    <Compile Include="Events\ClientConnectedEventArgs.cs" />
+    <Compile Include="Events\ClientDisconnectedEventArgs.cs" />
+    <Compile Include="Events\WebSocketMessageEventArgs.cs" />
+    <Compile Include="Events\CustomApiRequestEventArgs.cs" />
+    <Compile Include="Events\ApiCallSuccessEventArgs.cs" />
+    <Compile Include="Events\ApiCallFailureEventArgs.cs" />
+    <Compile Include="Events\LogMessageEventArgs.cs" />
+    
+    <!-- 列舉定義 -->
+    <Compile Include="Enums\ServerStatus.cs" />
+    
+    <!-- 模型 -->
+    <Compile Include="Models\ServerStatistics.cs" />
+    
+    <!-- 服務層 -->
+    <Compile Include="Services\DDSWebAPIService.cs" />
     <Compile Include="Services\HttpServerService.cs" />
     <Compile Include="Services\ApiClientService.cs" />
+    <Compile Include="Services\MesClientService.cs" />
     <Compile Include="Services\SecurityMiddleware.cs" />
     <Compile Include="Services\PerformanceController.cs" />
     <Compile Include="Services\ApiCommandProcessor.cs" />
     <Compile Include="Services\ConfigurationManager.cs" />
+    
+    <!-- 處理器 -->
+    <Compile Include="Services\Handlers\ApiRequestHandler.cs" />
+    <Compile Include="Services\Handlers\WebSocketHandler.cs" />
+    <Compile Include="Services\Handlers\StaticFileHandler.cs" />
+    
+    <!-- 屬性 -->
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

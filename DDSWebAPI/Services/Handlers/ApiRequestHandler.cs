@@ -609,7 +609,8 @@ namespace DDSWebAPI.Services.Handlers
                     return CreateErrorResponse("工單資料不能為空");
                 }
 
-                var responses = new List<CreateWorkorderResponse>();                foreach (var workorderData in request.Data)
+                var responses = new List<CreateWorkorderResponse>();               
+                foreach (var workorderData in request.Data)
                 {
                     // 驗證工單資料
                     if (string.IsNullOrEmpty(workorderData.WorkOrderNo))

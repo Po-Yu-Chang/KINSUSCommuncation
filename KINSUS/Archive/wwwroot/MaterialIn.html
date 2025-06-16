@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>倉儲操作</title>
+
+    <!-- Bootstrap -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="assets/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="assets/css/solid.min.css" rel="stylesheet" />
+    <link href="assets/css/my.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <!-- 導覽列 ↓ -->
+    <nav class="navbar bg-dark navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><h1><b>配針機倉庫管理畫面</b></h1></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/WareHouseOperations.html">倉儲操作</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/inventory.html">鑽針庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/storage.html">儲位庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/RobotControl.html">機械手臂控制</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- 導覽列 ↑ -->
+
+    <h1></h1>
+    <div class="container align-items-center">
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首頁</a></li>
+                <li class="breadcrumb-item"><a href="/WareHouseOperations.html">倉儲操作</a></li>
+                <li class="breadcrumb-item active" aria-current="page">入庫</li>
+            </ol>
+        </nav>
+
+        <!-- ↓↓↓ 入料 ↓↓↓ -->
+        <div id="InMaterial" class="row">
+            <div class="col-md-4 col-xs-12">
+                <button id="BtnInContinuous" class="btn btn-primary btn-wd" onclick="handleInMaterial(true)">
+                    <div class="row  mx-auto">
+                        <div class="col-12">
+                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                            <i class="fa-solid fa-plus fa-2xl"></i>
+                        </div>
+                        <div class="col-12">
+                            <h2><b>連續入倉</b></h2>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            <div class="col-md-4 col-xs-12">
+                <button id="BtnIn" class="btn btn-primary btn-wd" data-bs-toggle="modal" data-bs-target="#InMaterialModal">
+                    <div class="row">
+                        <div class="col-12">
+                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                            <i class="fa-solid fa-plus fa-2xl"></i>
+                        </div>
+                        <div class="col-12">
+                            <h2><b>指定盒數</b></h2>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            <div class="col-md-4 col-xs-12">
+                <button class="btn btn-danger btn-wd" onclick="handleStopMaterial()">
+                    <div class="row">
+                        <div class="col-12">
+                            <!--<i class="fa-solid fa-stop fa-2xl"></i>-->
+                            <i class="fa-solid fa-hand fa-2xl"></i>
+                        </div>
+                        <div class="col-12">
+                            <i class="fa-solid fa-s fa-2xl"></i>
+                            <i class="fa-solid fa-t fa-2xl"></i>
+                            <i class="fa-solid fa-o fa-2xl"></i>
+                            <i class="fa-solid fa-p fa-2xl"></i>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <!-- 入料 ↑↑↑ -->
+
+    </div>
+
+    <!-- [入料] 指定盒數 Modal ↓ -->
+    <div class="modal fade" id="InMaterialModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><b>[入料] 指定盒數</b></h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">盒數</label>
+                            <div class="col-sm-9">
+                                <input id="InBoxQty" type="number" class="form-control" placeholder="Box Qty" min="1" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="handleInMaterial(false)">確定入料</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- [入料] 指定盒數 Modal ↑↑ -->
+    <!-- Bootstrap -->
+    <script type="text/javascript" src="assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script type="text/javascript" src="assets/js/all.min.js"></script>
+    <script type="text/javascript" src="assets/js/solid.min.js"></script>
+
+    <script>
+
+        window.onload = function () {
+
+        };
+
+        // [1] 入料
+        function handleInMaterial(IsContinue) {
+
+            //alert("[入料] handleInMaterial!!!");
+
+            const InBoxQty = parseFloat(document.getElementById("InBoxQty").value);
+
+            if (!IsContinue && (isNaN(InBoxQty) || InBoxQty === null || InBoxQty === undefined)) {
+                alert("請填寫有效的盒數數值！");
+                return;
+            }
+
+            fetch(" /api/in-material", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    action: "in-material",
+                    IsContinue: IsContinue,
+                    InBoxQty: InBoxQty,
+                })
+            }).then(response => {
+                if (!response.ok) throw new Error("入料請求失敗");
+                return response.json();
+            }).then(data => {
+                console.log("入料成功:", data);
+                alert("入料成功！");
+            }).catch(error => {
+                console.error("入料失敗:", error);
+                alert("入料失敗！");
+            });
+        }
+
+        // [2] 停止入料
+        function handleStopMaterial() {
+
+            //alert("[停止入料] StopInMaterial!!!");
+
+            fetch(" /api/stop-material", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ action: "stop-material" })
+            }).then(response => {
+                if (!response.ok) throw new Error("停止入料請求失敗");
+                return response.json();
+            }).then(data => {
+                console.log("停止入料成功:", data);
+                alert("停止入料成功！");
+            }).catch(error => {
+                console.error("停止入料失敗:", error);
+                alert("停止入料失敗！");
+            });
+        }
+    </script>
+</body>
+</html>

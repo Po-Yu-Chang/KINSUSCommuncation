@@ -39,6 +39,11 @@ namespace DDSWebAPI.Events
         public DateTime Timestamp { get; set; }
 
         /// <summary>
+        /// 伺服器是否正在執行
+        /// </summary>
+        public bool IsRunning => Status == ServerStatus.Running;
+
+        /// <summary>
         /// 建構函式
         /// </summary>
         /// <param name="status">伺服器狀態</param>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotic Arm Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .control-panel {
+            background-color: #ffffff;
+            border: 1px solid #d1d9e6;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .combobox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .combobox-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+            .combobox-group label {
+                margin-bottom: 5px;
+                font-size: 14px;
+                color: #4a4f59;
+            }
+
+        .combobox {
+            width: 100px;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #d1d9e6;
+            border-radius: 4px;
+            background-color: #ffffff;
+        }
+        .robotic-arm {
+            width: 100%;
+            height: 250px;
+            background-color: #e0e8f0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7b91;
+            font-size: 14px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            display: flex;
+            text-align: left;
+        }
+
+            .slider-container label {
+                display: block;
+                margin-bottom: 5px;
+                font-size: 14px;
+                color: #4a4f59;
+            }
+
+        .slider {
+            width: 80%;
+        }
+
+        .checkbox-container {
+            margin-top: 20px;
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: space-between; /* 水平均勻分布 */
+            gap: 1px; /* 控制元素之間的間距 */
+        }
+
+        .checkbox {
+            width: 30px; /* 寬度 */
+            height: 30px; /* 高度 */
+            appearance: none; /* 隱藏瀏覽器默認樣式 */
+            background-color: #ffffff; /* 背景顏色 */
+            border: 2px solid #d1d9e6; /* 邊框 */
+            border-radius: 4px; /* 圓角 */
+            cursor: pointer; /* 鼠標樣式 */
+            display: inline-block;
+            position: relative;
+        }
+
+            .checkbox:checked {
+                background-color: #3b82f6; /* 勾選後的顏色 */
+                border-color: #3b82f6;
+            }
+
+                .checkbox:checked::after {
+                    content: ''; /* 添加勾選標記 */
+                    position: absolute;
+                    top: 4px;
+                    left: 10px;
+                    width: 6px;
+                    height: 12px;
+                    border: solid #ffffff;
+                    border-width: 0 2px 2px 0;
+                    transform: rotate(45deg);
+                }
+
+        .checkbox-label {
+            font-size: 18px; /* 放大文字大小 */
+            color: #4a4f59;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <div class="robotic-arm">
+            <img src="robotic-arm.png" alt="Robotic Arm" class="robotic-arm" />
+        </div>
+        <div class="checkbox-container">
+            <input id="ClampA" type="checkbox"  class="checkbox">
+            <label >ClampA</label>
+            <input id="ClampB" type="checkbox"  class="checkbox">
+            <label>ClampB</label>
+        </div>
+        <div class="slider-container">
+
+            <input type="range" id="speed" class="slider" min="0" max="100" value="50">
+            <button id="Btn_ChangeSpeed">GO</button>
+            <label id="SpeedDisplay" />
+        </div>
+        <div class="combobox-container">
+            <div class="combobox-group">
+                <label for="arm-selection">Area</label>
+                <select id="arm-selection" class="combobox">
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="G">G</option>
+                    <option value="H">H</option>
+                </select>
+            </div>
+            <div class="combobox-group">
+                <label for="position-selection">Position</label>
+                <select id="position-selection" class="combobox"></select>
+            </div>
+        </div>
+
+        <div class="checkbox-container">
+            <input type="checkbox" id="toggle-checkbox" class="checkbox">
+            <label for="toggle-checkbox" id="A_Lable" class="checkbox-label">取</label>
+            <button>GO</button>
+        </div>
+
+        <div class="combobox-container">
+            <div class="combobox-group">
+                <label for="Wd-Warehouse">Warehouse</label>
+                <select id="Wd-Warehouse" class="combobox">
+                    <option value="0">A</option>
+                    <option value="1">B</option>
+                </select>
+            </div>
+            <div class="combobox-group">
+                <label for="Wd-layer">Layer</label>
+                <select id="Wd-layer" class="combobox">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+            <div class="combobox-group">
+                <label for="Wd-Slide">Slide</label>
+                <select id="Wd-Slide" class="combobox">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
+                    <option value="16">16</option>
+                    <option value="17">17</option>
+                    <option value="18">18</option>
+                    <option value="19">19</option>
+                    <option value="20">20</option>
+                </select>
+            </div>
+
+
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="toggle-checkboxw" class="checkbox">
+            <label for="toggle-checkboxw" id="W_Lable">取</label>
+            <button>GO</button>
+        </div>
+
+    </div>
+
+    <script>
+        // 動態生成 1 到 28 的選項
+        const selectElement = document.getElementById('position-selection');
+        for (let i = 1; i <= 28; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i; // 顯示選項的文本
+            selectElement.appendChild(option);
+        }
+
+        // Toggle Checkbox 功能
+        const checkbox = document.getElementById('toggle-checkbox');
+        const label = document.getElementById('A_Lable');
+      
+
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                label.textContent = '取'; // 勾選時顯示 "取"
+            } else {
+                label.textContent = '放'; // 未勾選時顯示 "放"
+            }
+        });
+
+        const checkbox1 = document.getElementById('toggle-checkboxw');
+        const label1 = document.getElementById('W_Lable');
+      
+
+        checkbox1.addEventListener('change', () => {
+            if (checkbox1.checked) {
+                label1.textContent = '取'; // 勾選時顯示 "取"
+            } else {
+                label1.textContent = '放'; // 未勾選時顯示 "放"
+            }
+        });
+
+        const ClampA = document.getElementById('ClampA');
+        const ClampB = document.getElementById('ClampB');
+
+        ClampA.addEventListener('change', () => {
+            fetch("/api/OperationClamp", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ Clip:"A", checked:ClampA.checked })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error("夾爪請求失敗");
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("ClampA成功:", data);
+                    alert("ClampA成功！");
+                })
+                .catch(error => {
+                    console.error("入料失敗:", error);
+                    alert("入料失敗！");
+                });
+        });
+
+        ClampB.addEventListener('change', () => {
+            fetch("/api/OperationClamp", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ Clip: "B", checked: ClampB.checked })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error("夾爪請求失敗");
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("ClampA成功:", data);
+                    alert("ClampB成功！");
+                })
+                .catch(error => {
+                    console.error("入料失敗:", error);
+                    alert("入料失敗！");
+                });
+        });
+
+        const speed = document.getElementById('speed');
+        const SpeedDisplay = document.getElementById('SpeedDisplay');
+        speed.addEventListener('change', () => {
+
+            SpeedDisplay.textContent = speed.value;
+        });
+     
+
+        const Btn_ChangeSpeed = document.getElementById('Btn_ChangeSpeed');
+         Btn_ChangeSpeed.addEventListener('click', () => {
+            fetch("/api/ChangeSpeed", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ Speed: speed.value })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error("速度請求失敗");
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("速度成功:", data);
+                    alert("速度成功！");
+                })
+                .catch(error => {
+                    console.error("速度失敗:", error);
+                    alert("速度失敗！");
+                });
+        });
+        
+
+
+    </script>
+</body>
+</html>

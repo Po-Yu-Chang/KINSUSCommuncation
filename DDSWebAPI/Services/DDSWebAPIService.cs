@@ -19,8 +19,6 @@ namespace DDSWebAPI.Services
 
         private HttpServerService _httpServerService;
         private ApiClientService _apiClientService;
-        private SecurityMiddleware _securityMiddleware;
-        private PerformanceController _performanceController;
         private ApiCommandProcessor _commandProcessor;
         private ObservableCollection<ClientConnection> _clientConnections;
         private bool _isServerRunning;
@@ -234,22 +232,6 @@ namespace DDSWebAPI.Services
             }
         }
 
-        /// <summary>
-        /// 初始化 DDS Web API 服務（使用應用程式設定物件）
-        /// </summary>
-        /// <param name="appConfig">應用程式設定</param>
-        public DDSWebAPIService(AppConfiguration appConfig)
-        {
-            _clientConnections = new ObservableCollection<ClientConnection>();
-            
-            ServerUrl = appConfig.Server.ServerUrl;
-            RemoteApiUrl = appConfig.Server.RemoteApiUrl;
-            DeviceCode = appConfig.Server.DeviceCode;
-            OperatorName = appConfig.Server.OperatorName;
-
-            InitializeServices(appConfig);
-        }
-
         #endregion
 
         #region 公開方法
@@ -314,60 +296,97 @@ namespace DDSWebAPI.Services
         }
 
         /// <summary>
-        /// 發送配針回報
+        /// 停止 HTTP 伺服器 (非同步版本)
         /// </summary>
-        /// <param name="reportData">配針回報資料</param>
-        /// <returns>API 呼叫結果</returns>
-        public async Task<ApiCallResult> SendToolOutputReportAsync(ToolOutputReportData reportData)
+        public async Task StopServerAsync()
         {
-            var request = CreateBaseRequest(new List<ToolOutputReportData> { reportData });
-            return await _apiClientService.SendToolOutputReportAsync(request);
-        }
-
+            await Task.Run(() => StopServer());
+        }        
         /// <summary>
-        /// 發送錯誤回報
+        /// 發送 API 請求
         /// </summary>
-        /// <param name="errorData">錯誤回報資料</param>
+        /// <param name="endpoint">API 端點</param>
+        /// <param name="data">請求資料</param>
         /// <returns>API 呼叫結果</returns>
-        public async Task<ApiCallResult> SendErrorReportAsync(ErrorReportData errorData)
+        public async Task<string> SendApiRequestAsync(string endpoint, object data)
         {
-            var request = CreateBaseRequest(new List<ErrorReportData> { errorData });
-            return await _apiClientService.SendErrorReportAsync(request);
-        }
-
-        /// <summary>
-        /// 發送機臺狀態回報
-        /// </summary>
-        /// <param name="statusData">機臺狀態資料</param>
-        /// <returns>API 呼叫結果</returns>
-        public async Task<ApiCallResult> SendMachineStatusReportAsync(MachineStatusReportData statusData)
-        {
-            var request = CreateBaseRequest(new List<MachineStatusReportData> { statusData });
-            return await _apiClientService.SendMachineStatusReportAsync(request);
-        }
-
-        /// <summary>
-        /// 重新載入服務設定
-        /// </summary>
-        public void ReloadConfiguration()
-        {
-            OnLogMessage(LogLevel.Info, "重新載入服務設定");
-            
-            // 如果伺服器正在執行，需要重新啟動
-            bool wasRunning = IsServerRunning;
-            if (wasRunning)
+            try
             {
-                StopServer();
+                var result = await _apiClientService.SendCustomRequestAsync(endpoint, data);
+                
+                if (result.IsSuccess)
+                {
+                    OnApiCallSuccess(endpoint, result.ResponseData);
+                    return result.ResponseData;
+                }
+                else
+                {
+                    OnApiCallFailure(endpoint, result.ErrorMessage);
+                    throw new Exception(result.ErrorMessage);
+                }
             }
-
-            // 重新初始化服務
-            InitializeServices();
-
-            // 如果之前在執行，重新啟動
-            if (wasRunning)
+            catch (Exception ex)
             {
-                _ = StartServerAsync();
+                OnApiCallFailure(endpoint, ex.Message);
+                throw;
             }
+        }
+
+        /// <summary>
+        /// 發送工具輸出報告
+        /// </summary>
+        /// <param name="report">工具輸出報告</param>
+        /// <returns>發送結果</returns>
+        public async Task<string> SendToolOutputReportAsync(object report)
+        {
+            return await SendApiRequestAsync("/api/tool-output-report", report);
+        }
+
+        /// <summary>
+        /// 發送錯誤報告
+        /// </summary>
+        /// <param name="report">錯誤報告</param>
+        /// <returns>發送結果</returns>
+        public async Task<string> SendErrorReportAsync(object report)
+        {
+            return await SendApiRequestAsync("/api/error-report", report);
+        }
+
+        /// <summary>
+        /// 發送機台狀態報告
+        /// </summary>
+        /// <param name="report">機台狀態報告</param>
+        /// <returns>發送結果</returns>
+        public async Task<string> SendMachineStatusReportAsync(object report)
+        {
+            return await SendApiRequestAsync("/api/machine-status-report", report);
+        }
+
+        /// <summary>
+        /// 取得伺服器統計資訊
+        /// </summary>
+        /// <returns>伺服器統計資訊</returns>
+        public ServerStatistics GetServerStatistics()
+        {
+            return new ServerStatistics
+            {
+                IsRunning = IsServerRunning,
+                ServerUrl = ServerUrl,
+                ConnectedClients = _clientConnections?.Count ?? 0,
+                Uptime = IsServerRunning && _httpServerService?.StartTime.HasValue == true ? 
+                    DateTime.Now - _httpServerService.StartTime.Value : TimeSpan.Zero,
+                TotalRequests = _httpServerService?.TotalRequestsProcessed ?? 0,
+                ActiveConnections = _clientConnections?.Count ?? 0
+            };
+        }
+
+        /// <summary>
+        /// 取得預設 API 金鑰（用於測試和內部呼叫）
+        /// </summary>
+        /// <returns>預設 API 金鑰</returns>
+        public string GetDefaultApiKey()
+        {
+            return "KINSUS-API-KEY-2024";
         }
 
         #endregion
@@ -379,9 +398,6 @@ namespace DDSWebAPI.Services
         /// </summary>
         private void InitializeServices()
         {
-            InitializeSecurityMiddleware();
-            InitializePerformanceController();
-            InitializeCommandProcessor();
             InitializeHttpServer();
             InitializeApiClient();
         }
@@ -392,14 +408,9 @@ namespace DDSWebAPI.Services
         /// <param name="appConfig">應用程式設定</param>
         private void InitializeServices(AppConfiguration appConfig)
         {
-            InitializeSecurityMiddleware(appConfig.Security);
-            InitializePerformanceController(appConfig.Performance);
-            InitializeCommandProcessor();
             InitializeHttpServer();
             InitializeApiClient();
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// 初始化 HTTP 伺服器
         /// </summary>
         private void InitializeHttpServer()
@@ -414,6 +425,12 @@ namespace DDSWebAPI.Services
                 _httpServerService.Dispose();
             }
 
+            // 初始化安全性中介軟體
+            InitializeSecurityMiddleware();
+            
+            // 初始化效能控制器
+            InitializePerformanceController();
+
             // 建立新的服務
             _httpServerService = new HttpServerService(ServerUrl);
             
@@ -425,6 +442,42 @@ namespace DDSWebAPI.Services
         }
 
         /// <summary>
+        /// 初始化安全性中介軟體
+        /// </summary>
+        private void InitializeSecurityMiddleware()
+        {
+            // 設定有效的 API 金鑰
+            var validApiKeys = new List<string>
+            {
+                "KINSUS-API-KEY-2024",
+                "KINSUS-DEV-KEY-2024",
+                "KINSUS-TEST-KEY-2024"
+            };
+
+            // 設定 IP 白名單
+            var ipWhitelist = new List<string>
+            {
+                "127.0.0.1",
+                "::1",
+                "localhost",
+                "192.168.1.0/24"  // 可根據需要調整
+            };
+
+            //// 初始化安全性中介軟體
+            //_securityMiddleware = new SecurityMiddleware(validApiKeys, ipWhitelist, "KINSUS-SECRET-KEY-2024");
+            
+            //// 在開發環境中可以暫時停用某些驗證
+            //#if DEBUG
+            //_securityMiddleware.EnableApiKeyValidation = false; // 開發時暫時停用
+            //#endif
+        }
+
+        /// <summary>
+        /// 初始化效能控制器
+        /// </summary>
+        private void InitializePerformanceController()
+        {
+        }        /// <summary>
         /// 初始化 API 用戶端
         /// </summary>
         private void InitializeApiClient()
@@ -432,145 +485,15 @@ namespace DDSWebAPI.Services
             // 釋放舊的服務
             if (_apiClientService != null)
             {
-                _apiClientService.ApiCallSuccess -= OnApiClientCallSuccess;
-                _apiClientService.ApiCallFailure -= OnApiClientCallFailure;
                 _apiClientService.Dispose();
             }
 
             // 建立新的服務
             _apiClientService = new ApiClientService(RemoteApiUrl);
             
-            // 註冊事件
-            _apiClientService.ApiCallSuccess += OnApiClientCallSuccess;
-            _apiClientService.ApiCallFailure += OnApiClientCallFailure;
-        }        /// <summary>
-        /// 初始化安全性中介軟體（使用預設設定）
-        /// </summary>
-        private void InitializeSecurityMiddleware()
-        {
-            // 設定有效的 API 金鑰列表
-            var validApiKeys = new[]
-            {
-                "KINSUS_API_KEY_001",
-                "KINSUS_API_KEY_002"
-            };
-
-            // 設定 IP 白名單（空白表示允許所有 IP）
-            var ipWhitelist = new string[0];
-
-            // 設定簽章密鑰
-            var secretKey = "KINSUS_SECRET_KEY_2025";
-
-            _securityMiddleware = new SecurityMiddleware(validApiKeys, ipWhitelist, secretKey);
+            // 設定 API 金鑰
+            _apiClientService.SetApiKey(GetDefaultApiKey());
         }
-
-        /// <summary>
-        /// 初始化安全性中介軟體（使用設定檔）
-        /// </summary>
-        /// <param name="securityConfig">安全性設定</param>
-        private void InitializeSecurityMiddleware(SecurityConfiguration securityConfig)
-        {
-            // 設定有效的 API 金鑰列表
-            var validApiKeys = string.IsNullOrEmpty(securityConfig.ApiKey) 
-                ? new[] { "KINSUS_API_KEY_001", "KINSUS_API_KEY_002" }
-                : new[] { securityConfig.ApiKey };
-
-            // 設定 IP 白名單
-            var ipWhitelist = securityConfig.AllowedIpAddresses ?? new string[0];
-
-            // 設定簽章密鑰
-            var secretKey = string.IsNullOrEmpty(securityConfig.SignatureSecret) 
-                ? "KINSUS_SECRET_KEY_2025" 
-                : securityConfig.SignatureSecret;
-
-            _securityMiddleware = new SecurityMiddleware(validApiKeys, ipWhitelist, secretKey)
-            {
-                EnableApiKeyValidation = securityConfig.EnableApiKeyValidation,
-                EnableSignatureValidation = securityConfig.EnableSignatureValidation,
-                EnableIpWhitelist = securityConfig.EnableIpWhitelist
-            };
-        }        /// <summary>
-        /// 初始化效能控制器（使用預設設定）
-        /// </summary>
-        private void InitializePerformanceController()
-        {
-            _performanceController = new PerformanceController(
-                maxRequestsPerMinute: 100,
-                maxConcurrentConnections: 10,
-                maxDataSizeMB: 10,
-                requestTimeoutSeconds: 30
-            );
-        }
-
-        /// <summary>
-        /// 初始化效能控制器（使用設定檔）
-        /// </summary>
-        /// <param name="performanceConfig">效能設定</param>
-        private void InitializePerformanceController(PerformanceConfiguration performanceConfig)
-        {
-            _performanceController = new PerformanceController(
-                maxRequestsPerMinute: performanceConfig.MaxRequestsPerMinute,
-                maxConcurrentConnections: performanceConfig.MaxConcurrentConnections,
-                maxDataSizeMB: (int)(performanceConfig.MaxRequestSizeBytes / (1024 * 1024)), // 轉換為 MB
-                requestTimeoutSeconds: performanceConfig.RequestTimeoutSeconds
-            );
-        }
-
-        /// <summary>
-        /// 初始化指令處理器
-        /// </summary>
-        private void InitializeCommandProcessor()
-        {
-            _commandProcessor = new ApiCommandProcessor();
-            
-            // 註冊事件
-            _commandProcessor.CommandProcessed += OnCommandProcessed;
-            _commandProcessor.LogMessage += OnCommandProcessorLogMessage;
-        }
-
-        /// <summary>
-        /// 建立基礎請求物件
-        /// </summary>
-        private BaseRequest<T> CreateBaseRequest<T>(List<T> data)
-        {
-            return new BaseRequest<T>
-            {
-                RequestID = Guid.NewGuid().ToString(),
-                TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                DevCode = DeviceCode,
-                Operator = OperatorName,
-                Data = data,
-                ExtendData = null
-            };
-        }
-
-        /// <summary>
-        /// 更新用戶端連接資訊
-        /// </summary>
-        private void UpdateClientConnection(string clientId, string clientIp, string requestType = null)
-        {
-            var client = _clientConnections.FirstOrDefault(c => c.Id == clientId);
-            if (client == null)
-            {
-                // 新增用戶端連接
-                _clientConnections.Add(new ClientConnection
-                {
-                    Id = clientId,
-                    IpAddress = clientIp,
-                    ConnectTime = DateTime.Now,
-                    LastActivityTime = DateTime.Now,
-                    RequestType = requestType ?? "未知"
-                });
-            }
-            else
-            {
-                // 更新現有連接
-                client.LastActivityTime = DateTime.Now;
-                if (!string.IsNullOrEmpty(requestType))
-                {
-                    client.RequestType = requestType;
-                }
-            }        }
 
         #endregion
 
@@ -581,67 +504,14 @@ namespace DDSWebAPI.Services
         /// </summary>
         private async void OnHttpServerMessageReceived(object sender, MessageEventArgs e)
         {
-            string connectionToken = null;
             try
             {
-                // 1. 效能檢查
-                var performanceResult = await _performanceController?.ValidateRequestAsync(e.ClientId, e.Message);
-                if (performanceResult != null && !performanceResult.IsAllowed)
-                {
-                    OnLogMessage(LogLevel.Warning, $"效能檢查失敗: {performanceResult.ErrorMessage} (來自 {e.ClientIp})");
-                    return;
-                }
-                connectionToken = performanceResult?.ConnectionToken;
-
-                // 2. 安全性檢查（從 HTTP 標頭中提取，這裡先跳過詳細實現）
-                // TODO: 從 HttpContext 中提取 Authorization, Signature, Timestamp 等標頭
-                
-                // 3. 嘗試解析請求內容
-                BaseRequest request = null;
-                string serviceName = "未知";
-                string commandType = "UNKNOWN";
-                
-                try
-                {
-                    dynamic jsonData = Newtonsoft.Json.JsonConvert.DeserializeObject(e.Message);
-                    serviceName = jsonData?.serviceName ?? "未知";
-                    commandType = jsonData?.command ?? "UNKNOWN";
-                    
-                    // 嘗試解析為 BaseRequest
-                    request = Newtonsoft.Json.JsonConvert.DeserializeObject<BaseRequest>(e.Message);
-                }
-                catch (Exception parseEx)
-                {
-                    OnLogMessage(LogLevel.Warning, $"無法解析請求內容: {parseEx.Message}");
-                }
-
-                // 4. 更新用戶端連接資訊
-                UpdateClientConnection(e.ClientId, e.ClientIp, serviceName);
-
-                // 5. 記錄訊息
-                OnLogMessage(LogLevel.Info, $"收到來自 {e.ClientIp} 的 {serviceName} 請求 (指令: {commandType})");
-
-                // 6. 處理具體的 API 指令
-                if (request != null && commandType != "UNKNOWN")
-                {
-                    var response = await ProcessApiCommand(commandType, request);
-                    OnLogMessage(LogLevel.Info, $"指令 {commandType} 處理完成，結果: {(response.Success ? "成功" : "失敗")}");
-                }
-
-                // 7. 轉發事件
+                OnLogMessage(LogLevel.Info, $"收到來自 {e.ClientIp} 的請求");
                 MessageReceived?.Invoke(this, e);
             }
             catch (Exception ex)
             {
                 OnLogMessage(LogLevel.Error, $"處理 HTTP 伺服器訊息時發生錯誤: {ex.Message}");
-            }
-            finally
-            {
-                // 釋放平行處理能力
-                if (!string.IsNullOrEmpty(connectionToken))
-                {
-                    _performanceController?.ReleaseConcurrency(connectionToken);
-                }
             }
         }
 
@@ -675,60 +545,8 @@ namespace DDSWebAPI.Services
         /// </summary>
         private void OnHttpServerStatusChanged(object sender, ServerStatusChangedEventArgs e)
         {
-            OnLogMessage(LogLevel.Info, $"伺服器狀態變更: {e.Status} - {e.Description}");
+            OnLogMessage(LogLevel.Info, $"伺服器狀態變更: {e.Status} - {e.Message}");
             ServerStatusChanged?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// API 用戶端呼叫成功事件處理
-        /// </summary>
-        private void OnApiClientCallSuccess(object sender, ApiCallSuccessEventArgs e)
-        {
-            OnLogMessage(LogLevel.Info, $"API 呼叫成功: {e.Result.RequestUrl} (耗時: {e.Result.ProcessingTimeMs:F2}ms)");
-            ApiCallSuccess?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// API 用戶端呼叫失敗事件處理
-        /// </summary>
-        private void OnApiClientCallFailure(object sender, ApiCallFailureEventArgs e)
-        {
-            OnLogMessage(LogLevel.Error, $"API 呼叫失敗: {e.Result.RequestUrl} - {e.Result.ErrorMessage}");
-            ApiCallFailure?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// 指令處理完成事件處理
-        /// </summary>
-        private void OnCommandProcessed(object sender, CommandProcessedEventArgs e)
-        {
-            OnLogMessage(LogLevel.Info, $"指令處理完成: {e.CommandType}, 請求ID: {e.RequestId}, 成功: {e.Success}");
-        }        /// <summary>
-        /// 指令處理器日誌事件處理
-        /// </summary>
-        private void OnCommandProcessorLogMessage(object sender, LogEventArgs e)
-        {
-            LogLevel logLevel;
-            switch (e.Level)
-            {
-                case "DEBUG":
-                    logLevel = LogLevel.Debug;
-                    break;
-                case "INFO":
-                    logLevel = LogLevel.Info;
-                    break;
-                case "WARNING":
-                    logLevel = LogLevel.Warning;
-                    break;
-                case "ERROR":
-                    logLevel = LogLevel.Error;
-                    break;
-                default:
-                    logLevel = LogLevel.Info;
-                    break;
-            }
-            
-            OnLogMessage(logLevel, e.Message);
         }
 
         #endregion
@@ -748,12 +566,21 @@ namespace DDSWebAPI.Services
         /// </summary>
         private void OnLogMessage(LogLevel level, string message)
         {
-            LogMessage?.Invoke(this, new LogMessageEventArgs
-            {
-                Level = level,
-                Message = message,
-                Timestamp = DateTime.Now
-            });
+            LogMessage?.Invoke(this, new LogMessageEventArgs(level, message));
+        }        /// <summary>
+        /// 觸發 API 呼叫成功事件
+        /// </summary>
+        private void OnApiCallSuccess(string endpoint, string response)
+        {
+            ApiCallSuccess?.Invoke(this, new ApiCallSuccessEventArgs(endpoint, response));
+        }
+
+        /// <summary>
+        /// 觸發 API 呼叫失敗事件
+        /// </summary>
+        private void OnApiCallFailure(string endpoint, string error)
+        {
+            ApiCallFailure?.Invoke(this, new ApiCallFailureEventArgs(endpoint, error));
         }
 
         #endregion
@@ -783,104 +610,5 @@ namespace DDSWebAPI.Services
         }
 
         #endregion
-
-        /// <summary>
-        /// 處理具體的 API 指令
-        /// </summary>
-        public async Task<BaseResponse> ProcessApiCommand(string commandType, BaseRequest request)
-        {
-            if (_commandProcessor == null)
-            {
-                return new BaseResponse
-                {
-                    RequestId = request?.RequestId ?? Guid.NewGuid().ToString(),
-                    Success = false,
-                    Message = "指令處理器未初始化",
-                    Timestamp = DateTime.Now
-                };
-            }
-
-            switch (commandType)
-            {
-                case "SEND_MESSAGE_COMMAND":
-                    return await _commandProcessor.ProcessSendMessageCommand(request);
-                case "CREATE_NEEDLE_WORKORDER_COMMAND":
-                    return await _commandProcessor.ProcessCreateWorkorderCommand(request);
-                case "DATE_MESSAGE_COMMAND":
-                    return await _commandProcessor.ProcessDateSyncCommand(request);
-                case "SWITCH_RECIPE_COMMAND":
-                    return await _commandProcessor.ProcessSwitchRecipeCommand(request);
-                case "DEVICE_CONTROL_COMMAND":
-                    return await _commandProcessor.ProcessDeviceControlCommand(request);
-                case "WAREHOUSE_RESOURCE_QUERY_COMMAND":
-                    return await _commandProcessor.ProcessWarehouseResourceQueryCommand(request);
-                case "TOOL_TRACE_HISTORY_QUERY_COMMAND":
-                    return await _commandProcessor.ProcessToolTraceHistoryQueryCommand(request);
-                default:
-                    return new BaseResponse
-                    {
-                        RequestId = request?.RequestId ?? Guid.NewGuid().ToString(),
-                        Success = false,
-                        Message = $"不支援的指令類型: {commandType}",
-                        Timestamp = DateTime.Now
-                    };
-            }
-        }
     }
-
-    #region 輔助類別
-
-    /// <summary>
-    /// 日誌訊息事件參數
-    /// </summary>
-    public class LogMessageEventArgs : EventArgs
-    {
-        /// <summary>
-        /// 日誌等級
-        /// </summary>
-        public LogLevel Level { get; set; }
-
-        /// <summary>
-        /// 訊息內容
-        /// </summary>
-        public string Message { get; set; }
-
-        /// <summary>
-        /// 時間戳記
-        /// </summary>
-        public DateTime Timestamp { get; set; }
-    }
-
-    /// <summary>
-    /// 日誌等級列舉
-    /// </summary>
-    public enum LogLevel
-    {
-        /// <summary>
-        /// 除錯
-        /// </summary>
-        Debug,
-
-        /// <summary>
-        /// 資訊
-        /// </summary>
-        Info,
-
-        /// <summary>
-        /// 警告
-        /// </summary>
-        Warning,
-
-        /// <summary>
-        /// 錯誤
-        /// </summary>
-        Error,
-
-        /// <summary>
-        /// 嚴重錯誤
-        /// </summary>
-        Critical
-    }
-
-    #endregion
 }

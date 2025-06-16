@@ -2,14 +2,14 @@
   "SEND_MESSAGE_COMMAND": {
     "requestID": "MSG_CMD_001",
     "serviceName": "SEND_MESSAGE_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "message": "請補充刀具庫存！",
-        "level": "warning",
-        "priority": "high",
+        "message": "系統訊息",
+        "level": "info",
+        "priority": "normal",
         "actionType": 1,
         "intervalSecondTime": 30,
         "extendData": null
@@ -18,39 +18,32 @@
     "extendData": null
   },
   "CREATE_NEEDLE_WORKORDER_COMMAND": {
-    "requestID": "WO_CREATE_001",
+    "requestID": "WO_CMD_001",
     "serviceName": "CREATE_NEEDLE_WORKORDER_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
-    "AllPlate": 300,
-    "Pressplatens": 2,
     "operator": "OP001",
     "data": [
       {
-        "taskID": "TaskID1",
-        "workOrder": "Workorder1",
-        "tPackage": "TPackage1",
-        "stackCount": 1,
-        "totalSheets": 300,
-        "startTime": "2025-06-14 16:00:00",
-        "endTime": "2025-06-14 20:00:00",
-        "priority": "normal",
-        "isUrgent": false,
+        "workOrderId": "WO20240101001",
+        "partNumber": "PN001",
+        "quantity": 100,
+        "needleType": "DRILL_1.0",
         "extendData": null
       }
     ],
     "extendData": null
   },
   "DATE_MESSAGE_COMMAND": {
-    "requestID": "DATE_CMD_001",
+    "requestID": "TIME_CMD_001",
     "serviceName": "DATE_MESSAGE_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "time": "2025-06-14 16:00:00",
-        "week": 5,
+        "syncTime": "2025-06-16 16:00:00",
+        "timeZone": "GMT+8",
         "extendData": null
       }
     ],
@@ -59,25 +52,15 @@
   "SWITCH_RECIPE_COMMAND": {
     "requestID": "RECIPE_CMD_001",
     "serviceName": "SWITCH_RECIPE_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
-    "AllPlate": 300,
-    "Pressplatens": 2,
     "data": [
       {
-        "Tcode": "T01",
-        "Size": 0.468,
-        "HoleLimit": 500,
-        "Reshape": 1,
-        "RingColor": "#F76C5E"
-      },
-      {
-        "Tcode": "T02",
-        "Size": 0.7,
-        "HoleLimit": 500,
-        "Reshape": 1,
-        "RingColor": "#F76C4E"
+        "recipeId": "RECIPE001",
+        "recipeName": "標準鑽孔程式",
+        "recipeVersion": "1.0",
+        "extendData": null
       }
     ],
     "extendData": null
@@ -85,136 +68,151 @@
   "DEVICE_CONTROL_COMMAND": {
     "requestID": "CTRL_CMD_001",
     "serviceName": "DEVICE_CONTROL_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "command": 1,
+        "action": "START",
+        "deviceId": "DEV001",
         "extendData": null
       }
     ],
     "extendData": null
   },
   "WAREHOUSE_RESOURCE_QUERY_COMMAND": {
-    "requestID": "WAREHOUSE_QUERY_001",
+    "requestID": "WH_QRY_001",
     "serviceName": "WAREHOUSE_RESOURCE_QUERY_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "queryConditions": [
-          {
-            "size": 0.2,
-            "reshape": 1,
-            "type": "normal"
-          },
-          {
-            "size": 0.1,
-            "reshape": 1,
-            "type": "special"
-          },
-          {
-            "size": 0.3,
-            "reshape": 1,
-            "type": "special"
-          }
-        ],
+        "queryType": "TOOL_INVENTORY",
+        "warehouseId": "WH001",
+        "toolType": "DRILL",
         "extendData": null
       }
     ],
     "extendData": null
   },
   "TOOL_TRACE_HISTORY_QUERY_COMMAND": {
-    "requestID": "TRACE_QUERY_001",
+    "requestID": "TOOL_QRY_001",
     "serviceName": "TOOL_TRACE_HISTORY_QUERY_COMMAND",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "workorder": "WO20250614001"
-      },
-      {
-        "workorder": "WO20250614002"
-      },
-      {
-        "workorder": "WO20250614003"
+        "toolId": "TOOL001",
+        "startDate": "2025-06-09",
+        "endDate": "2025-06-16",
+        "extendData": null
       }
     ],
     "extendData": null
   },
   "TOOL_OUTPUT_REPORT_MESSAGE": {
-    "requestID": "OUTPUT_001",
+    "requestID": "TOOL_RPT_001",
     "serviceName": "TOOL_OUTPUT_REPORT_MESSAGE",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "workorder": "WO20250614001",
-        "recipe": "RECIPE_T01_0468",
-        "boxorder": "BOX001",
-        "boxqrcode": "QR_BOX_20250614_001",
-        "plateqrcode": "QR_PLATE_20250614_001",
-        "qty": 50,
-        "done": true,
-        "ringid": [
-          {
-            "id": "RING001",
-            "position": 1
-          },
-          {
-            "id": "RING002",
-            "position": 2
-          },
-          {
-            "id": "RING003",
-            "position": 3
-          }
-        ]
+        "reportType": "TOOL_OUTPUT",
+        "toolInfo": {
+          "toolId": "TOOL001",
+          "toolType": "DRILL",
+          "location": "A01",
+          "status": "COMPLETED"
+        },
+        "extendData": null
       }
     ],
     "extendData": null
   },
   "ERROR_REPORT_MESSAGE": {
-    "requestID": "ERROR_REPORT_001",
+    "requestID": "ERR_RPT_001",
     "serviceName": "ERROR_REPORT_MESSAGE",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "errorId": "ERR_001",
-        "errorContent": "刀具庫存不足",
-        "errorTime": "2025-06-14 15:30:00",
-        "errorResolveTime": "2025-06-14 16:00:00",
-        "extendData": null
-      },
-      {
-        "errorId": "ERR_002",
-        "errorContent": "配針機軸向異常",
-        "errorTime": "2025-06-14 14:15:00",
-        "errorResolveTime": null,
+        "errorCode": "E001",
+        "errorMessage": "系統錯誤",
+        "severity": "HIGH",
+        "errorType": "SYSTEM",
         "extendData": null
       }
     ],
     "extendData": null
   },
   "MACHINE_STATUS_REPORT_MESSAGE": {
-    "requestID": "MACHINE_STATUS_001",
+    "requestID": "MACH_RPT_001",
     "serviceName": "MACHINE_STATUS_REPORT_MESSAGE",
-    "timeStamp": "2025-06-14 16:00:00",
+    "timeStamp": "2025-06-16 16:00:00",
     "devCode": "KINSUS001",
     "operator": "OP001",
     "data": [
       {
-        "machineStatus": "run",
-        "statusTime": "2025-06-14 16:00:00",
+        "machineId": "MACH001",
+        "status": "RUNNING",
+        "temperature": 25.5,
+        "pressure": 1.2,
         "extendData": null
       }
     ],
     "extendData": null
+  },
+  "IN_MATERIAL_COMMAND": {
+    "materialId": "MAT001",
+    "materialType": "DRILL",
+    "quantity": 50,
+    "warehouseLocation": "A-01-01",
+    "operator": "OP001",
+    "timeStamp": "2025-06-16 16:00:00"
+  },
+  "OUT_MATERIAL_COMMAND": {
+    "materialId": "MAT001",
+    "quantity": 10,
+    "destinationLocation": "PRODUCTION_LINE_A",
+    "operator": "OP001",
+    "timeStamp": "2025-06-16 16:00:00"
+  },
+  "GET_LOCATION_BY_STORAGE_COMMAND": {
+    "storageId": "STORAGE001",
+    "queryType": "AVAILABLE_LOCATIONS"
+  },
+  "GET_LOCATION_BY_PIN_COMMAND": {
+    "pinCode": "PIN001",
+    "queryType": "LOCATION_INFO"
+  },
+  "OPERATION_CLAMP_COMMAND": {
+    "clampId": "CLAMP001",
+    "operation": "OPEN",
+    "force": 100.0,
+    "operator": "OP001"
+  },
+  "CHANGE_SPEED_COMMAND": {
+    "deviceId": "DEV001",
+    "newSpeed": 1200,
+    "speedUnit": "RPM",
+    "operator": "OP001"
+  },
+  "SERVER_STATUS_QUERY": {
+    "queryType": "FULL_STATUS",
+    "includeStatistics": true
+  },
+  "SERVER_RESTART_COMMAND": {
+    "restartType": "GRACEFUL",
+    "reason": "Manual restart request",
+    "operator": "ADMIN"
+  },
+  "CONNECTION_TEST_COMMAND": {
+    "testType": "PING",
+    "targetEndpoint": "localhost",
+    "timeStamp": "2025-06-16 16:00:00"
   }
 }

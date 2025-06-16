@@ -29,6 +29,21 @@
   - [2.2 錯誤回報上傳](#22-錯誤回報上傳error_report_message)
   - [2.8 機臺狀態上報](#28-機臺狀態上報machine_status_report_message)
 
+#### 🏭 客製化倉庫管理 API
+- [3. 客製化倉庫管理 API](#3-客製化倉庫管理-api)
+  - [3.1 入庫指令](#31-入庫指令in_material_command)
+  - [3.2 出庫指令](#32-出庫指令out_material_command)
+  - [3.3 依倉儲查詢位置](#33-依倉儲查詢位置get_location_by_storage_command)
+  - [3.4 依PIN碼查詢位置](#34-依pin碼查詢位置get_location_by_pin_command)
+  - [3.5 夾具操作指令](#35-夾具操作指令operation_clamp_command)
+  - [3.6 變更速度指令](#36-變更速度指令change_speed_command)
+
+#### ⚙️ 系統管理 API
+- [4. 系統管理 API](#4-系統管理-api)
+  - [4.1 伺服器狀態查詢](#41-伺服器狀態查詢server_status_query)
+  - [4.2 伺服器重啟指令](#42-伺服器重啟指令server_restart_command)
+  - [4.3 連線測試指令](#43-連線測試指令connection_test_command)
+
 ### 🛠️ 系統管理與維護
 - [三、錯誤處理與狀態碼](#三錯誤處理與狀態碼)
   - [3.1 HTTP 狀態碼](#31-http-狀態碼)
@@ -124,14 +139,14 @@
 {
   "requestID": "MSG_CMD_001",
   "serviceName": "SEND_MESSAGE_COMMAND",
-  "timeStamp": "2025-04-25 10:00:00",
+  "timeStamp": "2025-01-15 10:00:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "message": "請補充刀具庫存！",
-      "level": "warning",
-      "priority": "high",
+      "message": "系統訊息",
+      "level": "info",
+      "priority": "normal",
       "actionType": 1,
       "intervalSecondTime": 30,
       "extendData": null
@@ -141,18 +156,47 @@
 }
 ```
 
+**回應格式：**
+```json
+{
+  "responseID": "MSG_CMD_001",
+  "status": "success",
+  "message": "訊息已成功接收",
+  "extendData": null
+}
+```
+
+**訊息等級說明：**
+- `info`：一般資訊
+- `warning`：警告訊息
+- `error`：錯誤訊息
+
+**優先順序說明：**
+- `normal`：一般優先順序
+- `high`：高優先順序
+- `urgent`：緊急優先順序
+
 #### 1.2 派針工單建立指令（CREATE_NEEDLE_WORKORDER_COMMAND）
 
 **請求格式：**
 ```json
 {
-  "requestID": "WO_CREATE_001",
+  "requestID": "WO_CMD_001",
   "serviceName": "CREATE_NEEDLE_WORKORDER_COMMAND",
-  "timeStamp": "2025-06-12 08:00:00",
+  "timeStamp": "2025-01-15 08:00:00",
   "devCode": "KINSUS001",
-  "AllPlate": 300,
-  "Pressplatens": 2,
   "operator": "OP001",
+  "data": [
+    {
+      "workOrderId": "WO20240101001",
+      "partNumber": "PN001",
+      "quantity": 100,
+      "needleType": "DRILL_1.0",
+      "extendData": null
+    }
+  ],
+  "extendData": null
+}
   "data": [
     {
       "taskID": "TaskID1",
@@ -257,15 +301,15 @@
 **請求格式：**
 ```json
 {
-  "requestID": "DATE_CMD_001",
+  "requestID": "TIME_CMD_001",
   "serviceName": "DATE_MESSAGE_COMMAND",
-  "timeStamp": "2025-04-25 10:05:00",
+  "timeStamp": "2025-01-15 10:05:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "time": "2025-04-25 10:05:00",
-      "week": 5,
+      "syncTime": "2025-01-15 10:05:00",
+      "timeZone": "GMT+8",
       "extendData": null
     }
   ],
@@ -389,12 +433,13 @@
 {
   "requestID": "CTRL_CMD_001",
   "serviceName": "DEVICE_CONTROL_COMMAND",
-  "timeStamp": "2025-04-25 10:15:00",
+  "timeStamp": "2025-01-15 10:15:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "command": 1,
+      "action": "START",
+      "deviceId": "DEV001",
       "extendData": null
     }
   ],
@@ -402,38 +447,33 @@
 }
 ```
 
-**回應格式（設備控制確認回報）：**
+**回應格式：**
 ```json
 {
   "responseID": "CTRL_CMD_001",
-  "serviceName": "DEVICE_CONTROL_RESPONSE",
-  "timeStamp": "2025-04-25 10:15:03",
-  "devCode": "KINSUS001",
-  "operator": "OP001",
   "status": "success",
-  "message": "設備啟動完成",
-  "data": [
-    {
-      "command": 1,
-      "commandName": "啟動",
-      "deviceStatus": "執行中",
-      "controlTime": "2025-04-25 10:15:03",
-      "previousStatus": "停止",
-      "extendData": null
-    }
-  ],
-  "extendData": null
+  "message": "設備控制指令執行完成",
+  "data": {
+    "action": "START",
+    "deviceId": "DEV001",
+    "currentStatus": "RUNNING",
+    "previousStatus": "IDLE"
+  }
 }
 ```
 
-**控制指令參數說明：**
-- `command = 1`：設備啟動
-- `command = 2`：設備暫停
+**控制動作說明：**
+- `START`：啟動設備
+- `STOP`：停止設備
+- `PAUSE`：暫停設備
+- `RESUME`：恢復設備運行
 
-**設備控制狀態說明：**
-- `status = "success"`：控制指令執行成功
-- `status = "failed"`：控制指令執行失敗
-- `deviceStatus`：設備目前狀態（執行中/暫停/停止/異常）
+**設備狀態說明：**
+- `RUNNING`：執行中
+- `IDLE`：閒置中
+- `PAUSED`：暫停中
+- `STOPPED`：已停止
+- `ERROR`：錯誤狀態
 - `commandName`：指令名稱（啟動/暫停）
 - `previousStatus`：執行前狀態
 
@@ -727,74 +767,24 @@
 
 #### 2.1 配針回報上傳（TOOL_OUTPUT_REPORT_MESSAGE）
 
-**請求格式（DDS→ MES/IoT 系統）：**
+**請求格式（KINSUS → MES/IoT 系統）：**
 ```json
 {
-  "requestID": "OUTPUT_001",
+  "requestID": "TOOL_RPT_001",
   "serviceName": "TOOL_OUTPUT_REPORT_MESSAGE",
-  "timeStamp": "2025-04-25 10:00:00",
+  "timeStamp": "2025-01-15 10:00:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "workorder": "WO20250425001",
-      "recipe": "RECIPE_T01_0468",
-      "boxorder": "BOX001",
-      "boxqrcode": "QR_BOX_20250425_001",
-      "plateqrcode": "QR_PLATE_20250425_001",
-      "qty": 50,
-      "done": true,
-      "ringid": [
-        {
-          "id": "RING001",
-          "position": 1
-        },
-        {
-          "id": "RING002",
-          "position": 2
-        },
-        {
-          "id": "RING003",
-          "position": 3
-        },
-        {
-          "id": "RING004",
-          "position": 4
-        },
-        {
-          "id": "RING005",
-          "position": 5
-        }
-        // ... 繼續到第 50 筆資料
-        // {
-        //   "id": "RING050",
-        //   "position": 50
-        // }
-      ]
-    },
-    {
-      "workorder": "WO20250425002",
-      "recipe": "RECIPE_T02_0700",
-      "boxorder": "BOX002",
-      "boxqrcode": "QR_BOX_20250425_002",
-      "plateqrcode": "QR_PLATE_20250425_002",
-      "qty": 50,
-      "done": false,
-      "ringid": [
-        {
-          "id": "RING051",
-          "position": 1
-        },
-        {
-          "id": "RING052",
-          "position": 2
-        },
-        {
-          "id": "RING053",
-          "position": 3
-        }
-        // ... 繼續到第 50 筆資料
-      ]
+      "reportType": "TOOL_OUTPUT",
+      "toolInfo": {
+        "toolId": "TOOL001",
+        "toolType": "DRILL",
+        "location": "A01",
+        "status": "COMPLETED"
+      },
+      "extendData": null
     }
   ],
   "extendData": null
@@ -847,27 +837,22 @@
 
 #### 2.2 錯誤回報上傳（ERROR_REPORT_MESSAGE）
 
-**請求格式（DDS→ MES/IoT 系統）：**
+#### 2.2 錯誤回報上傳（ERROR_REPORT_MESSAGE）
+
+**請求格式（KINSUS → MES/IoT 系統）：**
 ```json
 {
-  "requestID": "ERROR_REPORT_001",
+  "requestID": "ERR_RPT_001",
   "serviceName": "ERROR_REPORT_MESSAGE",
-  "timeStamp": "2025-04-25 10:40:00",
+  "timeStamp": "2025-01-15 10:40:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "errorId": "ERR_001",
-      "errorContent": "刀具庫存不足",
-      "errorTime": "2025-04-25 10:35:00",
-      "errorResolveTime": "2025-04-25 10:40:00",
-      "extendData": null
-    },
-    {
-      "errorId": "ERR_002",
-      "errorContent": "配針機軸向異常",
-      "errorTime": "2025-04-25 09:15:00",
-      "errorResolveTime": null,
+      "errorCode": "E001",
+      "errorMessage": "系統錯誤",
+      "severity": "HIGH",
+      "errorType": "SYSTEM",
       "extendData": null
     }
   ],
@@ -875,36 +860,44 @@
 }
 ```
 
-**回應格式（MES/IoT 系統確認回報）：**
+**回應格式：**
 ```json
 {
-  "responseID": "ERROR_REPORT_001",
+  "responseID": "ERR_RPT_001",
   "status": "success",
-  "message": "錯誤回報接收完成",
+  "message": "錯誤回報已接收",
   "extendData": null
 }
 ```
 
-**錯誤回報欄位說明：**
-- `errorId`：錯誤識別碼
-- `errorContent`：錯誤內容描述
-- `errorTime`：錯誤發生時間
-- `errorResolveTime`：錯誤解決時間（null 表示尚未解決）
+**錯誤嚴重度說明：**
+- `LOW`：低嚴重度
+- `MEDIUM`：中等嚴重度
+- `HIGH`：高嚴重度
+- `CRITICAL`：嚴重錯誤
+
+**錯誤類型說明：**
+- `SYSTEM`：系統錯誤
+- `HARDWARE`：硬體錯誤
+- `SOFTWARE`：軟體錯誤
+- `NETWORK`：網路錯誤
 
 #### 2.8 機臺狀態上報（MACHINE_STATUS_REPORT_MESSAGE）
 
-**請求格式（DDS→ MES/IoT 系統）：**
+**請求格式（KINSUS → MES/IoT 系統）：**
 ```json
 {
-  "requestID": "MACHINE_STATUS_001",
+  "requestID": "MACH_RPT_001",
   "serviceName": "MACHINE_STATUS_REPORT_MESSAGE",
-  "timeStamp": "2025-04-25 10:35:00",
+  "timeStamp": "2025-01-15 10:35:00",
   "devCode": "KINSUS001",
   "operator": "OP001",
   "data": [
     {
-      "machineStatus": "run",
-      "statusTime": "2025-04-25 10:35:00",
+      "machineId": "MACH001",
+      "status": "RUNNING",
+      "temperature": 25.5,
+      "pressure": 1.2,
       "extendData": null
     }
   ],
@@ -912,22 +905,304 @@
 }
 ```
 
-**回應格式（MES/IoT 系統確認回報）：**
+**回應格式：**
 ```json
 {
-  "responseID": "MACHINE_STATUS_001",
+  "responseID": "MACH_RPT_001",
   "status": "success",
-  "message": "機臺狀態回報接收完成",
+  "message": "機臺狀態回報已接收",
   "extendData": null
 }
 ```
 
 **機臺狀態說明：**
-- `machineStatus`：機臺狀態
-  - `run`：執行中
-  - `idle`：閒置中
-  - `stop`：停止
-- `statusTime`：狀態時間
+- `RUNNING`：執行中
+- `IDLE`：閒置中
+- `ERROR`：錯誤狀態
+- `MAINTENANCE`：維護中
+
+---
+
+### 3. 客製化倉庫管理 API
+
+#### 3.1 入庫指令（IN_MATERIAL_COMMAND）
+
+**請求格式：**
+```json
+{
+  "materialId": "MAT001",
+  "materialType": "DRILL",
+  "quantity": 50,
+  "warehouseLocation": "A-01-01",
+  "operator": "OP001",
+  "timeStamp": "2025-01-15 10:00:00"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "IN_MAT_001",
+  "status": "success",
+  "message": "入庫作業完成",
+  "data": {
+    "materialId": "MAT001",
+    "actualQuantity": 50,
+    "warehouseLocation": "A-01-01",
+    "inventoryBalance": 150
+  }
+}
+```
+
+#### 3.2 出庫指令（OUT_MATERIAL_COMMAND）
+
+**請求格式：**
+```json
+{
+  "materialId": "MAT001",
+  "quantity": 10,
+  "destinationLocation": "PRODUCTION_LINE_A",
+  "operator": "OP001",
+  "timeStamp": "2025-01-15 11:00:00"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "OUT_MAT_001",
+  "status": "success",
+  "message": "出庫作業完成",
+  "data": {
+    "materialId": "MAT001",
+    "actualQuantity": 10,
+    "remainingQuantity": 140,
+    "destinationLocation": "PRODUCTION_LINE_A"
+  }
+}
+```
+
+#### 3.3 依倉儲查詢位置（GET_LOCATION_BY_STORAGE_COMMAND）
+
+**請求格式：**
+```json
+{
+  "storageId": "STORAGE001",
+  "queryType": "AVAILABLE_LOCATIONS"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "LOC_QUERY_001",
+  "status": "success",
+  "message": "位置查詢完成",
+  "data": {
+    "storageId": "STORAGE001",
+    "availableLocations": [
+      {
+        "locationId": "A-01-01",
+        "capacity": 100,
+        "currentStock": 50,
+        "status": "AVAILABLE"
+      },
+      {
+        "locationId": "A-01-02",
+        "capacity": 100,
+        "currentStock": 0,
+        "status": "EMPTY"
+      }
+    ]
+  }
+}
+```
+
+#### 3.4 依PIN碼查詢位置（GET_LOCATION_BY_PIN_COMMAND）
+
+**請求格式：**
+```json
+{
+  "pinCode": "PIN001",
+  "queryType": "LOCATION_INFO"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "PIN_QUERY_001",
+  "status": "success",
+  "message": "PIN碼查詢完成",
+  "data": {
+    "pinCode": "PIN001",
+    "locationInfo": {
+      "locationId": "A-01-01",
+      "storageId": "STORAGE001",
+      "materialInfo": {
+        "materialId": "MAT001",
+        "materialType": "DRILL",
+        "quantity": 50
+      }
+    }
+  }
+}
+```
+
+#### 3.5 夾具操作指令（OPERATION_CLAMP_COMMAND）
+
+**請求格式：**
+```json
+{
+  "clampId": "CLAMP001",
+  "operation": "OPEN",
+  "force": 100.0,
+  "operator": "OP001"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "CLAMP_OP_001",
+  "status": "success",
+  "message": "夾具操作完成",
+  "data": {
+    "clampId": "CLAMP001",
+    "operation": "OPEN",
+    "currentStatus": "OPENED",
+    "force": 100.0
+  }
+}
+```
+
+**操作類型說明：**
+- `OPEN`：開啟夾具
+- `CLOSE`：關閉夾具
+
+#### 3.6 變更速度指令（CHANGE_SPEED_COMMAND）
+
+**請求格式：**
+```json
+{
+  "deviceId": "DEV001",
+  "newSpeed": 1200,
+  "speedUnit": "RPM",
+  "operator": "OP001"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "SPEED_CHG_001",
+  "status": "success",
+  "message": "速度變更完成",
+  "data": {
+    "deviceId": "DEV001",
+    "previousSpeed": 1000,
+    "newSpeed": 1200,
+    "speedUnit": "RPM"
+  }
+}
+```
+
+---
+
+### 4. 系統管理 API
+
+#### 4.1 伺服器狀態查詢（SERVER_STATUS_QUERY）
+
+**請求格式：**
+```json
+{
+  "queryType": "FULL_STATUS",
+  "includeStatistics": true
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "SRV_STATUS_001",
+  "status": "success",
+  "message": "伺服器狀態查詢完成",
+  "data": {
+    "serverStatus": "RUNNING",
+    "uptime": "72:15:30",
+    "activeConnections": 5,
+    "totalMemoryUsage": "512MB",
+    "cpuUsage": "25%",
+    "statistics": {
+      "totalRequests": 1250,
+      "successfulRequests": 1200,
+      "failedRequests": 50,
+      "averageResponseTime": "150ms"
+    }
+  }
+}
+```
+
+#### 4.2 伺服器重啟指令（SERVER_RESTART_COMMAND）
+
+**請求格式：**
+```json
+{
+  "restartType": "GRACEFUL",
+  "reason": "Manual restart request",
+  "operator": "ADMIN"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "SRV_RESTART_001",
+  "status": "success",
+  "message": "伺服器重啟指令已接受",
+  "data": {
+    "restartType": "GRACEFUL",
+    "estimatedDowntime": "30 seconds",
+    "scheduledTime": "2025-01-15 12:00:00"
+  }
+}
+```
+
+**重啟類型說明：**
+- `GRACEFUL`：優雅重啟（等待現有連線完成）
+- `FORCE`：強制重啟（立即中斷所有連線）
+
+#### 4.3 連線測試指令（CONNECTION_TEST_COMMAND）
+
+**請求格式：**
+```json
+{
+  "testType": "PING",
+  "targetEndpoint": "localhost",
+  "timeStamp": "2025-01-15 12:00:00"
+}
+```
+
+**回應格式：**
+```json
+{
+  "responseID": "CONN_TEST_001",
+  "status": "success",
+  "message": "連線測試完成",
+  "data": {
+    "testType": "PING",
+    "targetEndpoint": "localhost",
+    "responseTime": "5ms",
+    "connectionStatus": "CONNECTED",
+    "testResult": "PASS"
+  }
+}
+```
+
+**測試結果說明：**
+- `PASS`：連線測試通過
+- `FAIL`：連線測試失敗
+- `TIMEOUT`：連線測試逾時
 
 ---
 

@@ -1,9 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // 檔案名稱: HttpServerServiceExample.cs
-// 檔案描述: HttpServerService 使用範例程式
-// 功能概述: 展示如何使用重構後的 HTTP 伺服器服務
+// 檔案描述: HttpServerService 使用範例，展示如何使用完整的伺服器功能
+// 功能示範:
+//   1. 安全性中介軟體整合
+//   2. 效能控制器整合
+//   3. 連線管理
+//   4. 完整的事件處理
 // 建立日期: 2025-06-13
-// 版本: 1.0.0
+// 更新日期: 2025-06-16 - 新增完整功能示範
+// 版本: 2.0.0
 ///////////////////////////////////////////////////////////////////////////////
 
 using System;
@@ -148,11 +153,17 @@ namespace DDSWebAPI.Examples
             Console.WriteLine("正在啟動 HTTP 伺服器...");
 
             var success = await _httpServer.StartAsync();
-            
-            if (success)
+              if (success)
             {
                 Console.WriteLine("✓ HTTP 伺服器啟動成功！");
+                Console.WriteLine("✓ 安全性中介軟體已啟用");
+                Console.WriteLine("✓ 效能控制器已啟用");
+                Console.WriteLine("✓ 連線管理已啟用");
                 Console.WriteLine();
+                
+                // 顯示安全性和效能功能
+                DemonstrateSecurityAndPerformanceFeatures();
+                
                 Console.WriteLine("伺服器資訊:");
                 Console.WriteLine($"  監聽位址: {_httpServer.UrlPrefix}");
                 Console.WriteLine($"  靜態檔案路徑: {_httpServer.StaticFilesPath}");
@@ -248,30 +259,37 @@ namespace DDSWebAPI.Examples
             Console.ForegroundColor = color;
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 伺服器狀態: {e.Status} - {e.Message}");
             Console.ForegroundColor = originalColor;
-        }
-
-        /// <summary>
-        /// 處理用戶端連接事件
+        }        /// <summary>
+        /// 處理用戶端連接事件（增強版）
         /// </summary>
         private void OnClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 用戶端連接: {e.ClientIp} ({e.ClientId}) - {e.ConnectionType}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ✓ 用戶端連接: {e.ClientIp} ({e.ClientId})");
+            
+            // 顯示目前連接數
+            var clients = _httpServer.GetConnectedClients();
+            Console.WriteLine($"  → 目前總連接數: {clients.Count}");
         }
 
         /// <summary>
-        /// 處理用戶端斷線事件
+        /// 處理用戶端斷線事件（增強版）
         /// </summary>
         private void OnClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 用戶端斷線: {e.ClientIp} ({e.ClientId}) - {e.Reason}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ✗ 用戶端斷線: {e.ClientId} - 原因: {e.Reason}");
+            
+            // 顯示目前連接數
+            var clients = _httpServer.GetConnectedClients();
+            Console.WriteLine($"  → 目前總連接數: {clients.Count}");
         }
 
         /// <summary>
-        /// 處理訊息接收事件
+        /// 處理訊息接收事件（增強版）
         /// </summary>
         private void OnMessageReceived(object sender, DDSWebAPI.Models.MessageEventArgs e)
         {
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 收到訊息 from {e.ClientIp}: {e.Message.Substring(0, Math.Min(100, e.Message.Length))}...");
+            var preview = e.Message.Length > 100 ? e.Message.Substring(0, 100) + "..." : e.Message;
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 📩 收到訊息 from {e.ClientIp}: {preview}");
         }
 
         /// <summary>
@@ -310,6 +328,51 @@ namespace DDSWebAPI.Examples
             {
                 Console.WriteLine($"處理自訂 API 時發生錯誤: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 顯示目前連接的用戶端（新增功能）
+        /// </summary>
+        private void DisplayConnectedClients()
+        {
+            var clients = _httpServer.GetConnectedClients();
+            Console.WriteLine($"目前連接用戶端數量: {clients.Count}");
+            
+            if (clients.Count > 0)
+            {
+                Console.WriteLine("已連接用戶端清單:");
+                foreach (var client in clients)
+                {
+                    var duration = DateTime.Now - client.ConnectTime;
+                    Console.WriteLine($"  - {client.IpAddress} ({client.Id}) - 連接時間: {duration.TotalSeconds:F1}秒");
+                    Console.WriteLine($"    最後活動: {client.LastActivityTime:HH:mm:ss}，請求類型: {client.RequestType}");
+                }
+            }
+            Console.WriteLine();
+        }
+
+        /// <summary>
+        /// 示範安全性和效能功能
+        /// </summary>
+        private void DemonstrateSecurityAndPerformanceFeatures()
+        {
+            Console.WriteLine("=== 安全性和效能功能說明 ===");
+            Console.WriteLine("✓ 安全性中介軟體功能:");
+            Console.WriteLine("  - API 金鑰驗證");
+            Console.WriteLine("  - IP 白名單檢查");
+            Console.WriteLine("  - 請求簽章驗證");
+            Console.WriteLine();
+            Console.WriteLine("✓ 效能控制器功能:");
+            Console.WriteLine("  - 請求頻率限制 (100/分鐘)");
+            Console.WriteLine("  - 平行連線數限制 (20個)");
+            Console.WriteLine("  - 資料大小限制 (10MB)");
+            Console.WriteLine("  - 請求逾時控制 (30秒)");
+            Console.WriteLine();
+            Console.WriteLine("✓ 連線管理功能:");
+            Console.WriteLine("  - 即時連線監控");
+            Console.WriteLine("  - 自動清理過期連接");
+            Console.WriteLine("  - 連線統計和追蹤");
+            Console.WriteLine();
         }
 
         #endregion

@@ -1,0 +1,10 @@
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\obj\Debug\DDSWebAPI.csproj.AssemblyReference.cache
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\obj\Debug\DDSWebAPI.csproj.CoreCompileInputs.cache
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\bin\Debug\DDSWebAPI.dll
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\bin\Debug\DDSWebAPI.pdb
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\bin\Debug\Newtonsoft.Json.dll
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\bin\Debug\Newtonsoft.Json.xml
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\obj\Debug\DDSWebAPI.csproj.Up2Date
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\obj\Debug\DDSWebAPI.dll
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\obj\Debug\DDSWebAPI.pdb
+C:\Users\qoose\Desktop\文件資料\客戶分類\G-景碩\KINSUS\DDSWebAPI\bin\Debug\config.ini

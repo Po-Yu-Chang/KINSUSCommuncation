@@ -63,8 +63,7 @@
                     Click="btnFlowChart_Click"
                     Content="流程圖" />
             </Grid>
-        </GroupBox>
-
+        </GroupBox>        
         <!--  伺服端角色控制區  -->
         <GroupBox
             x:Name="grpServerControl"
@@ -73,6 +72,10 @@
             Padding="10"
             Header="伺服端角色控制 (接收 IoT 指令)">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -81,17 +84,20 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock
+                    Grid.Row="0"
                     Grid.Column="0"
                     Margin="0,0,10,0"
                     VerticalAlignment="Center"
                     Text="接收位址:" />
                 <TextBox
                     x:Name="txtServerUrl"
+                    Grid.Row="0"
                     Grid.Column="1"
                     VerticalAlignment="Center"
                     Text="http://localhost:8085/" />
                 <Button
                     x:Name="btnConnect"
+                    Grid.Row="0"
                     Grid.Column="2"
                     Width="80"
                     Margin="10,0"
@@ -99,6 +105,7 @@
                     Content="啟動伺服器" />
                 <Button
                     x:Name="btnDisconnect"
+                    Grid.Row="0"
                     Grid.Column="3"
                     Width="80"
                     Margin="0,0,10,0"
@@ -107,12 +114,53 @@
                     IsEnabled="False" />
                 <Rectangle
                     x:Name="rectStatus"
+                    Grid.Row="0"
                     Grid.Column="4"
                     Width="20"
                     Height="20"
                     Fill="Gray"
                     Stroke="Black"
                     StrokeThickness="1" />
+
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="0,10,10,0"
+                    VerticalAlignment="Center"
+                    Text="伺服器功能:" />
+                <StackPanel
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="4"
+                    Margin="0,10,0,0"
+                    Orientation="Horizontal">                    <ComboBox
+                        x:Name="cmbServerResponse"
+                        Width="200"
+                        Margin="0,0,10,0">
+                        <ComboBoxItem Content="成功回應 (200 OK)" />
+                        <ComboBoxItem Content="錯誤回應 (400 Bad Request)" />
+                        <ComboBoxItem Content="伺服器錯誤 (500 Internal Error)" />
+                        <ComboBoxItem Content="自訂回應" />
+                    </ComboBox>
+                    <Button
+                        x:Name="btnSendResponse"
+                        Width="80"
+                        Margin="0,0,10,0"
+                        Click="btnSendResponse_Click"
+                        Content="發送回應" />
+                    <Button
+                        x:Name="btnBroadcast"
+                        Width="80"
+                        Margin="0,0,10,0"
+                        Click="btnBroadcast_Click"
+                        Content="廣播訊息" />
+                    <Button
+                        x:Name="btnKickClient"
+                        Width="80"
+                        Click="btnKickClient_Click"
+                        Content="踢除用戶端"
+                        IsEnabled="False" />
+                </StackPanel>
             </Grid>
         </GroupBox>
 
@@ -127,10 +175,13 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                </Grid.RowDefinitions>                
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -144,8 +195,7 @@
                     x:Name="txtIotEndpoint"
                     Grid.Row="0"
                     Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Text="http://mes-iot-server.example.com/api/" />
+                    VerticalAlignment="Center" />
                 <TextBlock
                     Grid.Row="0"
                     Grid.Column="2"
@@ -159,6 +209,32 @@
                     Width="120"
                     VerticalAlignment="Center"
                     Text="DEVICE001" />
+                <Button
+                    x:Name="btnConnectIoT"
+                    Grid.Row="0"
+                    Grid.Column="4"
+                    Width="80"
+                    Margin="10,0"
+                    Click="btnConnectIoT_Click"
+                    Content="連接 IoT" />
+                <Button
+                    x:Name="btnDisconnectIoT"
+                    Grid.Row="0"
+                    Grid.Column="5"
+                    Width="80"
+                    Margin="0,0,10,0"
+                    Click="btnDisconnectIoT_Click"
+                    Content="斷開連接"
+                    IsEnabled="False" />
+                <Rectangle
+                    x:Name="rectIoTStatus"
+                    Grid.Row="0"
+                    Grid.Column="6"
+                    Width="20"
+                    Height="20"
+                    Fill="Gray"
+                    Stroke="Black"
+                    StrokeThickness="1" />
 
                 <TextBlock
                     Grid.Row="1"
@@ -171,11 +247,12 @@
                     Grid.Column="1"
                     Grid.ColumnSpan="3"
                     Margin="0,10,0,0"
-                    Orientation="Horizontal">                    <ComboBox
+                    Orientation="Horizontal">                      <ComboBox
                         x:Name="cmbApiFunction"
                         Width="280"
-                        Margin="0,0,10,0">
-                        <!-- 伺服端角色 API（接收 MES/IoT 指令） -->
+                        Margin="0,0,10,0"
+                        SelectionChanged="cmbApiFunction_SelectionChanged">
+                        <!--  === 標準 MES API ===  -->
                         <ComboBoxItem Content="遠程資訊下發指令" Tag="SEND_MESSAGE_COMMAND" />
                         <ComboBoxItem Content="派針工單建立指令" Tag="CREATE_NEEDLE_WORKORDER_COMMAND" />
                         <ComboBoxItem Content="設備時間同步指令" Tag="DATE_MESSAGE_COMMAND" />
@@ -183,10 +260,21 @@
                         <ComboBoxItem Content="設備啟停控制指令" Tag="DEVICE_CONTROL_COMMAND" />
                         <ComboBoxItem Content="倉庫資源查詢指令" Tag="WAREHOUSE_RESOURCE_QUERY_COMMAND" />
                         <ComboBoxItem Content="鑽針履歷查詢指令" Tag="TOOL_TRACE_HISTORY_QUERY_COMMAND" />
-                        <!-- 用戶端角色 API（主動上報至 MES/IoT） -->
+                        <!--  === 回報類 API ===  -->
                         <ComboBoxItem Content="配針回報上傳" Tag="TOOL_OUTPUT_REPORT_MESSAGE" />
                         <ComboBoxItem Content="錯誤回報上傳" Tag="ERROR_REPORT_MESSAGE" />
                         <ComboBoxItem Content="機臺狀態上報" Tag="MACHINE_STATUS_REPORT_MESSAGE" />
+                        <!--  === 客製化倉庫管理 API ===  -->
+                        <ComboBoxItem Content="入庫指令" Tag="IN_MATERIAL_COMMAND" />
+                        <ComboBoxItem Content="出庫指令" Tag="OUT_MATERIAL_COMMAND" />
+                        <ComboBoxItem Content="依倉儲查詢位置" Tag="GET_LOCATION_BY_STORAGE_COMMAND" />
+                        <ComboBoxItem Content="依PIN碼查詢位置" Tag="GET_LOCATION_BY_PIN_COMMAND" />
+                        <ComboBoxItem Content="夾具操作指令" Tag="OPERATION_CLAMP_COMMAND" />
+                        <ComboBoxItem Content="變更速度指令" Tag="CHANGE_SPEED_COMMAND" />
+                        <!--  === 系統管理 API ===  -->
+                        <ComboBoxItem Content="伺服器狀態查詢" Tag="SERVER_STATUS_QUERY" />
+                        <ComboBoxItem Content="伺服器重啟指令" Tag="SERVER_RESTART_COMMAND" />
+                        <ComboBoxItem Content="連線測試指令" Tag="CONNECTION_TEST_COMMAND" />
                     </ComboBox>
                     <Button
                         x:Name="btnSendRequest"
@@ -217,11 +305,12 @@
         </GroupBox>
         <!--  連接資訊與活動監控區  -->
         <TabControl Grid.Row="3" Margin="0,0,0,10">
-            <TabItem Header="用戶端連接">
+            <TabItem Header="用戶端連接">                
                 <DataGrid
                     x:Name="dgClients"
                     AutoGenerateColumns="False"
-                    IsReadOnly="True">
+                    IsReadOnly="True"
+                    SelectionChanged="dgClients_SelectionChanged">
                     <DataGrid.Columns>
                         <DataGridTextColumn
                             Width="200"
@@ -277,11 +366,12 @@
                         <TextBlock
                             Margin="0,0,10,0"
                             VerticalAlignment="Center"
-                            Text="選擇範本:" />                        <ComboBox
+                            Text="選擇範本:" />                        
+                        <ComboBox
                             x:Name="cmbTemplates"
                             Width="320"
                             SelectionChanged="cmbTemplates_SelectionChanged">
-                            <!-- 伺服端角色 API（接收 MES/IoT 指令） -->
+                            <!--  伺服端角色 API（接收 MES/IoT 指令）  -->
                             <ComboBoxItem Content="遠程資訊下發指令 (SEND_MESSAGE_COMMAND)" />
                             <ComboBoxItem Content="派針工單建立指令 (CREATE_NEEDLE_WORKORDER_COMMAND)" />
                             <ComboBoxItem Content="設備時間同步指令 (DATE_MESSAGE_COMMAND)" />
@@ -289,7 +379,7 @@
                             <ComboBoxItem Content="設備啟停控制指令 (DEVICE_CONTROL_COMMAND)" />
                             <ComboBoxItem Content="倉庫資源查詢指令 (WAREHOUSE_RESOURCE_QUERY_COMMAND)" />
                             <ComboBoxItem Content="鑽針履歷查詢指令 (TOOL_TRACE_HISTORY_QUERY_COMMAND)" />
-                            <!-- 用戶端角色 API（主動上報至 MES/IoT） -->
+                            <!--  用戶端角色 API（主動上報至 MES/IoT）  -->
                             <ComboBoxItem Content="配針回報上傳 (TOOL_OUTPUT_REPORT_MESSAGE)" />
                             <ComboBoxItem Content="錯誤回報上傳 (ERROR_REPORT_MESSAGE)" />
                             <ComboBoxItem Content="機臺狀態上報 (MACHINE_STATUS_REPORT_MESSAGE)" />
@@ -334,12 +424,25 @@
                         StrokeThickness="1" />
                 </StackPanel>
             </StatusBarItem>
-            <Separator />
+            <Separator />            
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Margin="0,0,5,0" Text="用戶端:" />
                     <Rectangle
                         x:Name="rectClientStatus"
+                        Width="15"
+                        Height="15"
+                        Fill="Gray"
+                        Stroke="Black"
+                        StrokeThickness="1" />
+                </StackPanel>
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="0,0,5,0" Text="IoT 連接:" />
+                    <Rectangle
+                        x:Name="rectIoTConnectionStatus"
                         Width="15"
                         Height="15"
                         Fill="Gray"

@@ -76,7 +76,7 @@ namespace DDSWebAPI.Services
             }
 
             var apiKey = authorization.Substring(7); // 移除 "Bearer " 前綴
-
+            //KINSUS-API-KEY-2024
             if (!_validApiKeys.Contains(apiKey))
             {
                 return new SecurityValidationResult

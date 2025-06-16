@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using DDSWebAPI.Models;
+using DDSWebAPI.Events;
 
 namespace DDSWebAPI.Services
 {
@@ -47,6 +48,9 @@ namespace DDSWebAPI.Services
             // 設定預設標頭
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "DDSWebAPI-Client/1.0");
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            
+            // 設定預設 API 金鑰
+            _httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer KINSUS-API-KEY-2024");
         }
 
         #endregion
@@ -106,6 +110,19 @@ namespace DDSWebAPI.Services
             return await SendPostRequestAsync(endpoint, request);
         }
 
+        /// <summary>
+        /// 設定 API 金鑰
+        /// </summary>
+        /// <param name="apiKey">API 金鑰</param>
+        public void SetApiKey(string apiKey)
+        {
+            _httpClient.DefaultRequestHeaders.Remove("Authorization");
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+            }
+        }
+
         #endregion
 
         #region 私有方法
@@ -137,14 +154,14 @@ namespace DDSWebAPI.Services
                 result.RequestTime = DateTime.Now;
 
                 var response = await _httpClient.PostAsync(url, content);
-                
-                result.ResponseTime = DateTime.Now;
+                  result.ResponseTime = DateTime.Now;
                 result.StatusCode = (int)response.StatusCode;
                 result.IsSuccess = response.IsSuccessStatusCode;
 
                 if (response.Content != null)
                 {
                     result.ResponseBody = await response.Content.ReadAsStringAsync();
+                    result.ResponseData = result.ResponseBody; // 設定 ResponseData
                 }
 
                 if (result.IsSuccess)
@@ -184,17 +201,12 @@ namespace DDSWebAPI.Services
 
         #endregion
 
-        #region 事件觸發方法
-
-        /// <summary>
+        #region 事件觸發方法        /// <summary>
         /// 觸發 API 呼叫成功事件
         /// </summary>
         private void OnApiCallSuccess(ApiCallResult result)
         {
-            ApiCallSuccess?.Invoke(this, new ApiCallSuccessEventArgs
-            {
-                Result = result
-            });
+            ApiCallSuccess?.Invoke(this, new ApiCallSuccessEventArgs(result.RequestUrl, result.ResponseData));
         }
 
         /// <summary>
@@ -202,10 +214,7 @@ namespace DDSWebAPI.Services
         /// </summary>
         private void OnApiCallFailure(ApiCallResult result)
         {
-            ApiCallFailure?.Invoke(this, new ApiCallFailureEventArgs
-            {
-                Result = result
-            });
+            ApiCallFailure?.Invoke(this, new ApiCallFailureEventArgs(result.RequestUrl, result.ErrorMessage));
         }
 
         #endregion
@@ -285,28 +294,14 @@ namespace DDSWebAPI.Services
         /// <summary>
         /// 錯誤訊息
         /// </summary>
-        public string ErrorMessage { get; set; }
-
-        /// <summary>
+        public string ErrorMessage { get; set; }        /// <summary>
         /// 例外物件
         /// </summary>
         public Exception Exception { get; set; }
-    }
 
-    /// <summary>
-    /// API 呼叫成功事件參數
-    /// </summary>
-    public class ApiCallSuccessEventArgs : EventArgs
-    {
-        public ApiCallResult Result { get; set; }
-    }
-
-    /// <summary>
-    /// API 呼叫失敗事件參數
-    /// </summary>
-    public class ApiCallFailureEventArgs : EventArgs
-    {
-        public ApiCallResult Result { get; set; }
+        /// <summary>
+        /// 回應資料        /// </summary>
+        public string ResponseData { get; set; }
     }
 
     #endregion

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>倉儲操作</title>
+
+    <!-- Bootstrap -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="assets/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="assets/css/solid.min.css" rel="stylesheet" />
+    <link href="assets/css/my.css" rel="stylesheet" />
+
+</head>
+<body id="app">
+
+    <!-- 導覽列 ↓ -->
+    <nav class="navbar bg-dark navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><h1><b>配針機倉庫管理畫面</b></h1></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/WareHouseOperations.html">倉儲操作</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/inventory.html">鑽針庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/storage.html">儲位庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/RobotControl.html">機械手臂控制</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- 導覽列 ↑ -->
+
+    <div class="container align-items-center">
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首頁</a></li>
+                <li class="breadcrumb-item active" aria-current="page">倉儲操作</li>
+            </ol>
+        </nav>
+        <br>
+
+        <div class="accordion" id="accordionExample">
+            <!-- [入庫] ↓↓↓ -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIn" aria-expanded="false" aria-controls="collapseOne">
+                        <h2><b>入庫 +</b></h2>
+                    </button>
+                </h2>
+                <div id="collapseIn" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <!-- ↓↓↓ 入庫 ↓↓↓ -->
+                        <div id="InMaterial" class="row">
+                            <div class="col-md-4 col-xs-12">
+                                <button id="BtnInContinuous" class="btn btn-primary btn-wd" @click="handleInMaterial(true)">
+                                    <div class="row  mx-auto">
+                                        <div class="col-12">
+                                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                                            <i class="fa-solid fa-plus fa-2xl"></i>
+                                        </div>
+                                        <div class="col-12">
+                                            <h2><b>連續入倉</b></h2>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-xs-12">
+                                <button id="BtnIn" class="btn btn-primary btn-wd" data-bs-toggle="modal" data-bs-target="#InMaterialModal">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                                            <i class="fa-solid fa-plus fa-2xl"></i>
+                                        </div>
+                                        <div class="col-12">
+                                            <h2><b>指定盒數</b></h2>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-xs-12">
+                                <button class="btn btn-danger btn-wd" @click="handleStopMaterial">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <!--<i class="fa-solid fa-stop fa-2xl"></i>-->
+                                            <i class="fa-solid fa-hand fa-2xl"></i>
+                                        </div>
+                                        <div class="col-12">
+                                            <i class="fa-solid fa-s fa-2xl"></i>
+                                            <i class="fa-solid fa-t fa-2xl"></i>
+                                            <i class="fa-solid fa-o fa-2xl"></i>
+                                            <i class="fa-solid fa-p fa-2xl"></i>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- ↑↑↑ 入庫 ↑↑↑ -->
+                    </div>
+                </div>
+            </div>
+            <!-- [出庫] ↓↓↓ -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOut" aria-expanded="false" aria-controls="collapseTwo">
+                        <h2><b>出庫 -</b></h2>
+                    </button>
+                </h2>
+                <div id="collapseOut" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+
+                        <!-- ↓↓↓ 出庫 ↓↓↓ -->
+                        <div id="OutMaterial" class="row">
+                            <div class="col-md-4 col-xs-12">
+                            </div>
+                            <div class="col-md-4 col-xs-12">
+                                <button id="BtnIn" class="btn btn-success btn-wd" data-bs-toggle="modal" data-bs-target="#outMaterialModal">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                                            <i class="fa-solid fa-minus fa-2xl"></i>
+                                        </div>
+                                        <div class="col-12">
+                                            <h2><b>領取針盒</b></h2>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-md-4 col-xs-12">
+                            </div>
+                        </div>
+                        <!-- ↑↑↑ 出庫 ↑↑↑ -->
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Modal -->
+        <!-- [入庫] 指定盒數 Modal ↓↓↓ -->
+        <div class="modal fade" id="InMaterialModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel"><b>[入庫] 指定盒數</b></h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">盒數</label>
+                                <div class="col-sm-9">
+                                    <input v-model="InBoxQty" type="number" class="form-control" placeholder="Box Qty" min="1" />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="handleInMaterial(false)">確定入料</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- [入庫] 指定盒數 Modal ↑↑↑ -->
+        <!-- [出庫] Modal ↓↓↓ -->
+        <div class="modal fade" id="outMaterialModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel"><b>出料設定</b></h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Flute Diameter</label>
+                                <div class="col-sm-9">
+                                    <select v-model="outPara.FluteDiameter" class="form-control">
+                                        <option v-for="(pin, index) in outPin"
+                                                :key="index"
+                                                :value="pin.FluteDiameter">
+                                            {{ pin.FluteDiameter }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Flute Length</label>
+                                <div class="col-sm-9">
+                                    <select v-model="outPara.FluteLength" class="form-control">
+                                        <option v-for="(length, index) in filteredOptions.FluteLength || []"
+                                                :key="length"
+                                                :value="length">
+                                            {{ length }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Coating</label>
+                                <div class="col-sm-9">
+                                    <select v-model="outPara.Coating" class="form-control">
+                                        <option v-for="(coating, index) in filteredOptions.Coating || []"
+                                                :key="index"
+                                                :value="coating">
+                                            {{ coating }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Vendor Code</label>
+                                <div class="col-sm-9">
+                                    <select v-model="outPara.VendorCode" class="form-control">
+                                        <option v-for="(vendor, index) in filteredOptions.VendorCode || []"
+                                                :key="index"
+                                                :value="vendor">
+                                            {{ vendor }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Resharp</label>
+                                <div class="col-sm-9">
+                                    <select v-model="outPara.ResharpCount" class="form-control">
+                                        <option v-for="(resharp, index) in filteredOptions.ResharpCount || []"
+                                                :key="index"
+                                                :value="resharp">
+                                            {{ resharp }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Box Qty</label>
+                                <div class="col-sm-9">
+                                    <input v-model="outPara.BoxQty" type="number" class="form-control" placeholder="Box Qty" min="0">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" @click="handleOutMaterial">確定出料</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- [出庫] Modal ↑↑↑ -->
+
+
+    </div>
+    <!-- Bootstrap -->
+    <script type="text/javascript" src="assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script type="text/javascript" src="assets/js/all.min.js"></script>
+    <script type="text/javascript" src="assets/js/solid.min.js"></script>
+
+    <script type="text/javascript" src="assets/js/vue.global.js"></script>
+
+    <script>
+        const { createApp } = Vue;
+
+        // 建立 Vue 應用
+        const app = createApp({
+            data() {
+                return {
+                    message: 'Hello vue!',
+                    outPara: {
+                        FluteDiameter: 0,
+                        FluteLength: 0,
+                        ResharpCount: 0,
+                        Coating: '',
+                        VendorCode: '',
+                        BoxQty: 0
+                    },
+                    outPin: [], // API 回傳值,
+
+                    InBoxQty:1,
+                };
+            },
+            methods: {
+                 // [1] 入料
+                handleInMaterial(IsContinue) {
+
+                    if (!IsContinue && (isNaN(this.InBoxQty) || this.InBoxQty === null || this.InBoxQty === undefined)) {
+                        alert("請填寫有效的盒數數值！");
+                        return;
+                    }
+
+                    fetch(" /api/in-material", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            action: "in-material",
+                            IsContinue: IsContinue,
+                            InBoxQty: this.InBoxQty,
+                        })
+                    }).then(response => {
+                        if (!response.ok) throw new Error("入料請求失敗");
+                        return response.json();
+                    }).then(data => {
+                        console.log("入料成功:", data);
+                        //alert("入料成功！");
+                    }).catch(error => {
+                        console.error("入料失敗:", error);
+                        alert("入料失敗！");
+                    });
+                }, // [2] 停止入料
+                handleStopMaterial() {
+                    fetch(" /api/stop-material", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ action: "stop-material" })
+                    }).then(response => {
+                        if (!response.ok) throw new Error("停止入料請求失敗");
+                        return response.json();
+                    }).then(data => {
+                        console.log("停止入料成功:", data);
+                        alert("停止入料成功！");
+                    }).catch(error => {
+                        console.error("停止入料失敗:", error);
+                        alert("停止入料失敗！");
+                    });
+                },
+                // [3] 出庫 -> 取得PinData
+                GetOutPinsData() {
+                    fetch("/api/out-getPins", {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json"
+                        }
+                    }).then(response => {
+                        if (!response.ok) throw new Error("getPins請求失敗");
+                        return response.json();
+                    }).then(data => {
+
+                        this.outPin = data.Pindatas;
+                        console.log(data.Pindatas)
+
+                    }).catch(error => {
+                        alert("GetOutPinsData失敗！");
+                    });
+                },
+                // [3] 出庫
+                handleOutMaterial() {
+
+                    fetch("/api/out-material", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            FluteDiameter: this.outPara.FluteDiameter,
+                            FluteLength: this.outPara.FluteLength,
+                            ResharpCount: this.outPara.ResharpCount,
+                            Coating: this.outPara.Coating,
+                            VendorCode: this.outPara.VendorCode,
+                            BoxQty: this.outPara.BoxQty
+                        })
+                    }).then(response => {
+                        if (!response.ok) throw new Error("出料請求失敗");
+                        return response.json();
+                    }).then(data => {
+                        alert("規格OK！");
+                    }).catch(error => {
+                        alert("沒有庫存！");
+                    });
+                }
+            },
+            computed: {
+                // 動態篩選唯一值
+                filteredOptions() {
+                    if (!this.outPara.FluteDiameter) return {};
+                    const filteredPins = this.outPin.filter(
+                        (pin) => pin.FluteDiameter === this.outPara.FluteDiameter
+                    );
+
+                    // 動態生成過濾結果
+                    return ['FluteLength', 'Coating', 'VendorCode', 'ResharpCount'].reduce(
+                        (acc, field) => {
+                            acc[field] = Array.from(
+                                new Set(
+                                    filteredPins.map((pin) => pin[field]).filter((value) => value !== null && value !== undefined && value !== '')
+                                )
+                            );
+                            return acc;
+                        },{}
+                    );
+                },
+            },
+            watch: {
+                // 當 FluteDiameter 改變時，清空相關欄位
+                'outPara.FluteDiameter'(newVal) {
+                    if (!newVal) {
+                        this.outPara.FluteLength = '';
+                        this.outPara.Coating = '';
+                        this.outPara.VendorCode = '';
+                        this.outPara.ResharpCount = '';
+                    }
+                },
+            },
+            created() {
+                this.GetOutPinsData();
+            }
+        });
+
+        // 掛載到 DOM
+        app.mount('#app');
+    </script>
+</body>
+</html>

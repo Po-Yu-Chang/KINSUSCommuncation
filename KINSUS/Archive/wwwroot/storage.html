@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>庫存查詢</title>
+
+    <!-- Bootstrap -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="assets/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="assets/css/solid.min.css" rel="stylesheet" />
+    <link href="assets/css/my.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <!-- 導覽列 ↓ -->
+    <nav class="navbar bg-dark navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><h1><b>配針機倉庫管理畫面</b></h1></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/WareHouseOperations.html">倉儲操作</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/inventory.html">鑽針庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/storage.html">儲位庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/RobotControl.html">機械手臂控制</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- 導覽列 ↑ -->
+
+    <h1></h1>
+
+    <div id="app" class="container align-items-center">
+        <nav class="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首頁</a></li>
+                <li class="breadcrumb-item active" aria-current="page">儲位庫存查詢</li>
+            </ol>
+        </nav>
+
+        <!-- 內容 ↓ -->
+        <div class="alert alert-primary" role="alert">
+            <form class="row row-cols-lg-auto g-3 align-items-center">
+                <div class="col-12">
+                    <div class="input-group">
+                        <select class="form-select" v-model="myArea">
+                            <option value="" selected>請選擇</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                        </select>
+                        <div class="input-group-text">倉</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group">
+                        <select class="form-select" v-model="myLayer">
+                            <option value="" selected>請選擇</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <div class="input-group-text">層</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group">
+                        <select class="form-select" v-model="myTrack">
+                            <option value="" selected>請選擇</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                        </select>
+                        <div class="input-group-text">軌</div>
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+
+        <div class="row" id="result">
+
+        </div>
+
+        <div id="table-container">
+
+            <div class="card col-md-6" v-if="StorageInfo.length > 0">
+                <div class="card-header">
+                    <h3>
+                        <span :class="StorageInfo[0].Area === 'A' ? 'badge text-bg-primary' : 'badge text-bg-success'"> {{ StorageInfo[0].Area }} 倉 </span>
+                        <i class="fa-solid fa-chevron-right" style=" width:50px;"></i>
+                        <span class="badge text-bg-secondary"> {{ StorageInfo[0].Layer }} 層 </span>
+                        <i class="fa-solid fa-chevron-right" style=" width:50px;"></i>
+                        <span class="badge text-bg-secondary"> {{ StorageInfo[0].Track }} 軌 </span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td>Size</td>
+                                <td>{{ StorageInfo[0].Size }}</td>
+                            </tr>
+                            <tr>
+                                <td>Reshape</td>
+                                <td>{{ StorageInfo[0].Reshape }}</td>
+                            </tr>
+                            <tr>
+                                <td>BoxStatus</td>
+                                <td>
+                                    <h5>
+                                        <span :class="{
+                                        'badge text-bg-secondary': StorageInfo[0]?.BoxStatus === '空盒',
+                                        'badge text-bg-success': StorageInfo[0]?.BoxStatus === '配針',
+                                        'badge text-bg-primary': StorageInfo[0]?.BoxStatus === '拔針'}">
+                                            {{ StorageInfo[0].BoxStatus }}
+                                        </span>
+                                    </h5>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Box</td>
+                                <td><p :class="StorageInfo[0].Box == 0 ? 'text-danger':''">{{ StorageInfo[0].Box }} 盒</p></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card col-md-6" v-if="StorageInfo.length == 0">
+                <div class="card-header">
+                    <h3>
+                        <span class="badge text-bg-secondary"> {{ myArea }} 倉 </span>
+                        <i class="fa-solid fa-chevron-right" style=" width:50px;"></i>
+                        <span class="badge text-bg-secondary"> {{ myLayer }} 層 </span>
+                        <i class="fa-solid fa-chevron-right" style=" width:50px;"></i>
+                        <span class="badge text-bg-secondary"> {{ myTrack }} 軌 </span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <h2>無軌道資料</h2>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+    </div>
+    <!-- collapse ↑ -->
+    <!-- 內容 ↑ -->
+    </div>
+
+    <!-- Bootstrap -->
+    <script type="text/javascript" src="assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script type="text/javascript" src="assets/js/all.min.js"></script>
+    <script type="text/javascript" src="assets/js/solid.min.js"></script>
+    <script type="text/javascript" src="assets/js/vue.global.js"></script>
+    <!--<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>-->
+
+
+    <script>
+
+        const { createApp } = Vue;
+
+        // 建立 Vue 應用
+        const app = createApp({
+            data() {
+                return {
+                    message: 'Hello vue!',
+                    myData: [],
+                    StorageInfo: [],
+                    myArea: 'A',
+                    myLayer: '1',
+                    myTrack: '1',
+
+                };
+            },
+            methods: {
+                GetData() {
+
+                    fetch("/api/getLocationByStorage", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            //    //Area: this.myArea,
+                            //    //Layer: this.myLayer,
+                            //    //Track: this.myTrack
+                        })
+                    }).then(response => {
+                        if (!response.ok) throw new Error("getLocationByStorage請求失敗");
+                        return response.json();
+                    }).then(data => {
+
+                        this.myData = data.StorageInfo;
+
+                        this.Search();
+
+                    }).catch(error => {
+                        alert("getLocationByStorage！");
+                    });
+
+                },
+                Search() {
+                    this.StorageInfo = this.myData.filter(i =>
+                        i.Area === this.myArea &&
+                        i.Layer === this.myLayer &&
+                        i.Track === this.myTrack
+                    );
+                }
+            },
+            watch: {
+                // 監聽 myArea 變化
+                myArea() {
+                    this.Search();
+                },
+                // 監聽 myLayer 變化
+                myLayer() {
+                    this.Search();
+                },
+                // 監聽 myTrack 變化
+                myTrack() {
+                    this.Search();
+                }
+            },
+            created() {
+                this.GetData();
+            }
+        });
+
+        // 掛載到 DOM
+        app.mount('#app');
+    </script>
+
+
+</body>
+</html>

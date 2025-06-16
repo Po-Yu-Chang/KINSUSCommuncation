@@ -121,10 +121,8 @@ namespace DDSWebAPI.Examples
         /// </summary>
         private async Task InitializeServiceAsync()
         {
-            Console.WriteLine("正在初始化 DDS API 服務...");
-
-            // 使用設定檔建立服務實例
-            _ddsService = new DDSWebAPIService(_appConfig);
+            Console.WriteLine("正在初始化 DDS API 服務...");            // 使用設定檔建立服務實例
+            _ddsService = new DDSWebAPIService("config.ini");
 
             // 註冊事件處理程式
             RegisterEventHandlers();
@@ -264,18 +262,16 @@ namespace DDSWebAPI.Examples
             _ddsService.ServerStatusChanged += (sender, e) =>
             {
                 Console.WriteLine($"[伺服器狀態] {e.Status}: {e.Description}");
-            };
-
-            // API 呼叫成功事件
+            };            // API 呼叫成功事件
             _ddsService.ApiCallSuccess += (sender, e) =>
             {
-                Console.WriteLine($"[API 成功] {e.Result.RequestUrl} (耗時: {e.Result.ProcessingTimeMs:F2}ms)");
+                Console.WriteLine($"[API 成功] {e.Endpoint} 回應時間: {e.Timestamp}");
             };
 
             // API 呼叫失敗事件
             _ddsService.ApiCallFailure += (sender, e) =>
             {
-                Console.WriteLine($"[API 失敗] {e.Result.RequestUrl}: {e.Result.ErrorMessage}");
+                Console.WriteLine($"[API 失敗] {e.Endpoint}: {e.Error}");
             };
 
             // 日誌訊息事件
@@ -343,18 +339,16 @@ namespace DDSWebAPI.Examples
                     OperationType = "配針",
                     Position = "A001",
                     Remarks = "Console 測試"
-                };
-
-                Console.WriteLine("發送配針回報...");
+                };                Console.WriteLine("發送配針回報...");
                 var result = await _ddsService.SendToolOutputReportAsync(reportData);
 
-                if (result.IsSuccess)
+                if (!string.IsNullOrEmpty(result))
                 {
                     Console.WriteLine("✓ 配針回報發送成功");
                 }
                 else
                 {
-                    Console.WriteLine($"✗ 配針回報發送失敗: {result.ErrorMessage}");
+                    Console.WriteLine("✗ 配針回報發送失敗");
                 }
             }
             catch (Exception ex)
@@ -379,18 +373,16 @@ namespace DDSWebAPI.Examples
                     OperatorName = "CONSOLE_USER",
                     DetailDescription = "Console 測試錯誤",
                     IsResolved = false
-                };
-
-                Console.WriteLine("發送錯誤回報...");
+                };                Console.WriteLine("發送錯誤回報...");
                 var result = await _ddsService.SendErrorReportAsync(errorData);
 
-                if (result.IsSuccess)
+                if (!string.IsNullOrEmpty(result))
                 {
                     Console.WriteLine("✓ 錯誤回報發送成功");
                 }
                 else
                 {
-                    Console.WriteLine($"✗ 錯誤回報發送失敗: {result.ErrorMessage}");
+                    Console.WriteLine("✗ 錯誤回報發送失敗");
                 }
             }
             catch (Exception ex)
@@ -418,18 +410,16 @@ namespace DDSWebAPI.Examples
                     Vibration = 0.05,
                     ReportTime = DateTime.Now,
                     Warnings = new List<string> { "溫度稍高", "建議檢查冷卻系統" }
-                };
-
-                Console.WriteLine("發送機臺狀態回報...");
+                };                Console.WriteLine("發送機臺狀態回報...");
                 var result = await _ddsService.SendMachineStatusReportAsync(statusData);
 
-                if (result.IsSuccess)
+                if (!string.IsNullOrEmpty(result))
                 {
                     Console.WriteLine("✓ 機臺狀態回報發送成功");
                 }
                 else
                 {
-                    Console.WriteLine($"✗ 機臺狀態回報發送失敗: {result.ErrorMessage}");
+                    Console.WriteLine("✗ 機臺狀態回報發送失敗");
                 }
             }
             catch (Exception ex)

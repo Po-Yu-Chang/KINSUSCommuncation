@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>倉儲操作</title>
+
+    <!-- Bootstrap -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="assets/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="assets/css/solid.min.css" rel="stylesheet" />
+    <link href="assets/css/my.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <!-- 導覽列 ↓ -->
+    <nav class="navbar bg-dark navbar-expand-lg bg-body-tertiary" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><h1><b>配針機倉庫管理畫面</b></h1></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/WareHouseOperations.html">倉儲操作</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/inventory.html">鑽針庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/storage.html">儲位庫存查詢</a>
+                </div>
+            </div>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                <div class="navbar-nav">
+                    <a class="nav-link active" href="/RobotControl.html">機械手臂控制</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- 導覽列 ↑ -->
+
+    <h1></h1>
+    <div class="container align-items-center">
+       
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">首頁</a></li>
+                <li class="breadcrumb-item"><a href="/WareHouseOperations.html">倉儲操作</a></li>
+                <li class="breadcrumb-item active" aria-current="page">出庫</li>
+            </ol>
+        </nav>
+
+        <!-- 出料 ↓ -->
+        <div id="OutMaterial" class="row">
+            <div class="col-md-4 col-xs-12">
+            </div>
+            <div class="col-md-4 col-xs-12">
+                <button id="BtnIn" class="btn btn-success btn-wd" data-bs-toggle="modal" data-bs-target="#outMaterialModal">
+                    <div class="row">
+                        <div class="col-12">
+                            <i class="fa-solid fa-warehouse fa-2xl"></i>
+                            <i class="fa-solid fa-minus fa-2xl"></i>
+                        </div>
+                        <div class="col-12">
+                            <h2><b>領取針盒</b></h2>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            <div class="col-md-4 col-xs-12">
+            </div>
+        </div>
+        <!-- 出料 ↑↑↑ -->
+
+    </div>
+    <!-- 出料 Modal ↓ -->
+    <div class="modal fade" id="outMaterialModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="exampleModalLabel"><b>出料設定</b></h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Flute Diameter</label>
+                            <div class="col-sm-9">
+                                <input id="FluteDiameter" type="number" class="form-control" placeholder="Flute Diameter" min="0" step="0.005">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Flute Length</label>
+                            <div class="col-sm-9">
+                                <input id="FluteLength" type="number" class="form-control" placeholder="Flute Length" min="0">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Coating</label>
+                            <div class="col-sm-9">
+                                <select id="Coating" class="form-control">
+                                    <option value="Y" selected>請選擇</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Vendor Code</label>
+                            <div class="col-sm-9">
+                                <select id="VendorCode" class="form-control">
+                                    <option value="CINPHOWN" selected>請選擇</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Resharp</label>
+                            <div class="col-sm-9">
+                                <input id="ResharpCount" type="number" class="form-control" placeholder="Resharp" min="0">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label">Box Qty</label>
+                            <div class="col-sm-9">
+                                <input id="BoxQty" type="number" class="form-control" placeholder="Box Qty" min="0">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="handleOutMaterial()">確定出料</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 出料 Modal ↑↑ -->
+    <!-- Bootstrap -->
+    <script type="text/javascript" src="assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script type="text/javascript" src="assets/js/all.min.js"></script>
+    <script type="text/javascript" src="assets/js/solid.min.js"></script>
+
+    <script>
+
+        window.onload = function () {
+            GetOutPinsData();
+        };
+
+        // [3] 出料
+        function handleOutMaterial() {
+
+            alert("[出料] handleOutMaterial!!!");
+
+            const FluteDiameter = parseFloat(document.getElementById("FluteDiameter").value);
+            const FluteLength = parseInt(document.getElementById("FluteLength").value);
+            const ResharpCount = parseInt(document.getElementById("ResharpCount").value);
+            const Coating = parseInt(document.getElementById("Coating").value);
+            const VendorCode = parseInt(document.getElementById("VendorCode").value);
+            const BoxQty = parseInt(document.getElementById("BoxQty").value);
+
+            /*
+            if (isNaN(FluteDiameter) ||
+                isNaN(FluteLength) ||
+                isNaN(Resharp) ||
+                isNaN(Coating) ||
+                isNaN(VendorCode) ||
+                isNaN(BoxQty) ||
+                isNaN(PinQty)) {
+                alert("請填寫所有數值！");
+                return;
+            }*/
+
+            fetch("/api/out-material", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    FluteDiameter: FluteDiameter,
+                    FluteLength: FluteLength,
+                    ResharpCount: ResharpCount,
+                    Coating: Coating,
+                    VendorCode: VendorCode,
+                    BoxQty: BoxQty
+                })
+            }).then(response => {
+                if (!response.ok) throw new Error("出料請求失敗");
+                return response.json();
+            }).then(data => {
+                // console.log("出料成功:", data);
+                // console.log("Pindatas", data.Pindatas);
+                alert("規格OK！");
+            }).catch(error => {
+                //console.error("出料失敗:", error);
+                alert("沒有庫存！");
+            });
+        }
+        // [4] 出料-PinDatas
+        function GetOutPinsData() {
+            fetch("/api/out-getPins", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(response => {
+                if (!response.ok) throw new Error("getPins請求失敗");
+                return response.json();
+            }).then(data => {
+                populateData(data.Pindatas);
+            }).catch(error => {
+                alert("GetOutPinsData失敗！");
+            });
+        }
+        // 主函式：呼叫 populateSelectOptions 為不同屬性填充選項
+        function populateData(pindatas) {
+            populateSelectOptions(pindatas, "Coating", "Coating");       // 填充 Coating
+            populateSelectOptions(pindatas, "VendorCode", "VendorCode"); // 填充 VendorCode
+        }
+
+        // 下拉選單更新資料。
+        function populateSelectOptions(pindatas, property, selectId) {
+            // 提取不重複的屬性值，並過濾掉空值或 null
+            const uniqueValues = [...new Set(pindatas.map(pin => pin[property]).filter(value => value))];
+
+            // 獲取指定的 <select> 元素
+            const selectElement = document.getElementById(selectId);
+
+            // 清空 <select> 的現有選項
+            selectElement.innerHTML = '<option value="" selected>請選擇</option>';
+
+            // 將不重複的值新增為 <option>
+            uniqueValues.forEach(value => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                selectElement.appendChild(option);
+            });
+        }
+    </script>
+</body>
+</html>
