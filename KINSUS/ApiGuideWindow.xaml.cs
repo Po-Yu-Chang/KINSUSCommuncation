@@ -15,25 +15,14 @@ namespace KINSUS
         {
             InitializeComponent();
             LoadMarkdownContent();
-        }        private void LoadMarkdownContent()
+        }        
+        private void LoadMarkdownContent()
         {
             try
             {
                 // 直接載入 KINSUS 通訊規格文件
-                string docPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Document", "KINSUS通訊_整理版.md");
+                string docPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "配針機通訊規範.md");
                 
-                if (!File.Exists(docPath))
-                {
-                    // 嘗試其他可能的路徑
-                    docPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "Document", "KINSUS通訊_整理版.md");
-                    
-                    if (!File.Exists(docPath))
-                    {
-                        // 如果找不到文件，顯示內嵌的 API 指南
-                        DisplayBuiltInApiGuide();
-                        return;
-                    }
-                }
 
                 if (File.Exists(docPath))
                 {

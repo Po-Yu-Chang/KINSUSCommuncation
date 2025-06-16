@@ -2,19 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Threading;
 using System.Windows.Media;
-using DDSWebAPI.Services;
-using DDSWebAPI.Models;
+using System.Windows.Threading;
 using DDSWebAPI.Events;
+using DDSWebAPI.Models;
+using DDSWebAPI.Services;
 using Newtonsoft.Json;
-using System.IO;
 
 namespace KINSUS
 {
@@ -38,23 +38,19 @@ namespace KINSUS
         /// <summary>
         /// 日期時間顯示計時器
         /// </summary>
-        private DispatcherTimer _dateTimeTimer;        /// <summary>
+        private DispatcherTimer _dateTimeTimer;
+
+        /// <summary>
         /// API 請求範本字典
         /// </summary>
-        private Dictionary<string, string> _apiTemplates;        /// <summary>
+        private Dictionary<string, string> _apiTemplates;
+
+        /// <summary>
         /// 心跳計時器
         /// </summary>
         private DispatcherTimer _heartbeatTimer = new DispatcherTimer();
 
         /// <summary>
-        /// 操作模式列舉
-        /// </summary>
-        private enum OperationMode
-        {
-            DualMode,    // 雙向模式
-            ServerMode,  // 伺服端模式
-            ClientMode   // 用戶端模式
-        }        /// <summary>
         /// 當前操作模式
         /// </summary>
         private OperationMode _currentMode = OperationMode.DualMode;
@@ -71,7 +67,21 @@ namespace KINSUS
 
         #endregion
 
-        #region 屬性
+        #region 列舉
+
+        /// <summary>
+        /// 操作模式列舉
+        /// </summary>
+        private enum OperationMode
+        {
+            DualMode,    // 雙向模式
+            ServerMode,  // 伺服端模式
+            ClientMode   // 用戶端模式
+        }
+
+        #endregion
+
+        #region 公開屬性
 
         /// <summary>
         /// 伺服器狀態
@@ -97,8 +107,9 @@ namespace KINSUS
 
         #endregion
 
-        #region 建構子與初始化
-
+        #region 建構子與初始化        /// <summary>
+        /// MainWindow 建構子
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -107,8 +118,7 @@ namespace KINSUS
             InitializeDDSService();
             
             // 初始化用戶端連接集合
-            _clientConnections = new ObservableCollection<ClientConnection>();
-            dgClients.ItemsSource = _clientConnections;
+            InitializeClientConnections();
             
             // 初始化計時器
             InitializeTimers();
@@ -116,9 +126,20 @@ namespace KINSUS
             // 初始化 API 請求範本
             InitializeApiTemplates();
             
-            // 視窗關閉事件處理
+            // 註冊視窗關閉事件
             this.Closed += MainWindow_Closed;
-        }        /// <summary>
+        }
+
+        /// <summary>
+        /// 初始化用戶端連接集合
+        /// </summary>
+        private void InitializeClientConnections()
+        {
+            _clientConnections = new ObservableCollection<ClientConnection>();
+            dgClients.ItemsSource = _clientConnections;
+        }
+
+        /// <summary>
         /// 初始化 DDS Web API 服務（增強版）
         /// </summary>
         private void InitializeDDSService()
@@ -147,27 +168,34 @@ namespace KINSUS
                 UpdateStatus($"DDS Web API 服務初始化失敗: {ex.Message}");
                 AppendLog($"[{DateTime.Now:HH:mm:ss}] ✗ 初始化失敗: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// 初始化計時器
         /// </summary>
         private void InitializeTimers()
         {
-            // 日期時間顯示計時器
-            _dateTimeTimer = new DispatcherTimer();
-            _dateTimeTimer.Interval = TimeSpan.FromSeconds(1);
-            _dateTimeTimer.Tick += (s, e) =>
-            {                // 更新日期時間顯示
+            InitializeDateTimeTimer();
+        }
+
+        /// <summary>
+        /// 初始化日期時間顯示計時器
+        /// </summary>
+        private void InitializeDateTimeTimer()
+        {
+            _dateTimeTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            
+            _dateTimeTimer.Tick += (sender, e) =>
+            {
                 if (txtDateTime != null)
                 {
                     txtDateTime.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 }
             };
+            
             _dateTimeTimer.Start();
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// 初始化 API 請求範本
         /// </summary>
         private void InitializeApiTemplates()
@@ -176,19 +204,9 @@ namespace KINSUS
             
             try
             {
-                //// 從 Templates 目錄載入範本檔案
-                //string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates", "ApiTemplates.json");
-
-                //if (File.Exists(templatePath))
-                //{
-                //    string json = File.ReadAllText(templatePath);
-                //    _apiTemplates = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
-                //}
-                //else
-                //{
-                //    // 建立預設範本
-                //    CreateDefaultTemplates();
+                // 建立預設範本
                 CreateDefaultTemplates();
+                
                 // 填充範本下拉選單
                 PopulateTemplateComboBox();
             }
@@ -198,7 +216,7 @@ namespace KINSUS
                 CreateDefaultTemplates();
                 PopulateTemplateComboBox();
             }
-        }        /// <summary>
+        }/// <summary>
         /// 建立預設範本（當 JSON 檔案不存在時使用）
         /// </summary>
         private void CreateDefaultTemplates()
@@ -1221,9 +1239,8 @@ namespace KINSUS
                 UpdateStatus("伺服器啟動失敗");
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ✗ 伺服器啟動異常: {ex.Message}");
             }
-        }        /// <summary>
-        /// 斷開連接按鈕點擊事件 (停止伺服器) - 增強版
-        /// </summary>
+        }        
+
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1329,7 +1346,8 @@ namespace KINSUS
             {
                 MessageBox.Show($"套用範本失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }        /// <summary>
+        }        
+        /// <summary>
         /// 儲存範本按鈕點擊事件
         /// </summary>
         private void btnSaveTemplate_Click(object sender, RoutedEventArgs e)
@@ -1455,7 +1473,8 @@ namespace KINSUS
                 AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 連接異常: {ex.Message}");
                 MessageBox.Show($"連接失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }        /// <summary>
+        }       
+        /// <summary>
         /// IoT 斷開連接按鈕點擊事件
         /// </summary>
         private async void btnDisconnectIoT_Click(object sender, RoutedEventArgs e)
@@ -1558,170 +1577,8 @@ namespace KINSUS
             }
             catch (Exception ex)
             {
-                UpdateStatus($"廣播失敗: {ex.Message}");
-                MessageBox.Show($"廣播失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                UpdateStatus($"廣播失敗: {ex.Message}");                MessageBox.Show($"廣播失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }        /// <summary>
-        /// 測試伺服器按鈕點擊事件（增強版）
-        /// </summary>
-        private async void btnTestServer_Click(object sender, RoutedEventArgs e)
-        {
-            try            {
-                UpdateStatus("正在執行完整伺服器測試...");
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔍 開始伺服器健康檢查");
-                
-                // 1. 檢查伺服器狀態
-                bool serverRunning = _ddsService?.IsServerRunning == true;
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ✓ 伺服器狀態: {(serverRunning ? "執行中" : "已停止")}");
-                
-                if (!serverRunning)
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ⚠️ 伺服器未執行，無法進行完整測試");
-                    UpdateStatus("伺服器未執行");
-                    MessageBox.Show("伺服器未啟動，請先啟動伺服器", "測試結果", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-                
-                // 2. 測試 API 端點
-                string serverUrl = txtServerUrl.Text.Trim();
-                bool apiTestResult = await TestApiEndpoint("/api/health", "{}");
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] {(apiTestResult ? "✓" : "✗")} API 端點測試: {(apiTestResult ? "成功" : "失敗")}");
-                
-                // 3. 檢查連線統計
-                DisplayConnectionStatistics();
-                
-                // 4. 檢查安全性和效能狀態
-                DisplaySecurityAndPerformanceStatus();
-                
-                // 5. 模擬負載測試
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🚀 執行負載測試...");
-                await Task.Delay(1500);
-                
-                // 6. 測試完整性檢查
-                bool overallHealthy = serverRunning && apiTestResult;
-                
-                if (overallHealthy)
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ✅ 伺服器完整測試通過 - 所有功能正常");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 伺服器狀態: 正常");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → API 回應: 正常");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 安全性控制: 啟用");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 效能控制: 啟用");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 連線管理: 正常");
-                    
-                    UpdateStatus("✅ 伺服器測試通過");
-                    MessageBox.Show("🎉 伺服器測試完全通過！\n\n所有功能運作正常：\n• 伺服器狀態：正常\n• API 回應：正常\n• 安全性控制：啟用\n• 效能控制：啟用\n• 連線管理：正常", 
-                        "測試結果", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 伺服器測試發現問題");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 伺服器狀態: {(serverRunning ? "正常" : "異常")}");
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → API 回應: {(apiTestResult ? "正常" : "異常")}");
-                    
-                    UpdateStatus("❌ 伺服器測試發現問題");
-                    MessageBox.Show("⚠️ 伺服器測試發現問題\n\n請檢查：\n• 伺服器是否正確啟動\n• 網路連接是否正常\n• 防火牆設定是否正確", 
-                        "測試結果", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }            }
-            catch (Exception ex)
-            {
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 伺服器測試發生異常: {ex.Message}");                UpdateStatus($"❌ 伺服器測試失敗: {ex.Message}");
-                MessageBox.Show($"測試過程中發生錯誤:\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        /// <summary>
-        /// 重新整理用戶端按鈕點擊事件（增強版）
-        /// </summary>
-        private void btnRefreshClients_Click(object sender, RoutedEventArgs e)        {
-            try
-            {
-                UpdateStatus("正在重新整理用戶端列表...");
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔄 開始重新整理用戶端列表");
-                
-                // 記錄刷新前的連線數
-                int beforeCount = _clientConnections.Count;
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 刷新前連線數: {beforeCount}");
-                
-                // 模擬重新整理邏輯
-                System.Threading.Thread.Sleep(1000);
-                
-                // 更新最後活動時間並檢查連線有效性
-                var currentTime = DateTime.Now;
-                var expiredConnections = new List<ClientConnection>();
-                
-                foreach (var client in _clientConnections.ToList())
-                {
-                    // 檢查連線是否逾時（超過 5 分鐘無活動）
-                    if ((currentTime - client.LastActivityTime).TotalMinutes > 5)
-                    {
-                        expiredConnections.Add(client);
-                        AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 發現逾時連線: {client.Id} (最後活動: {client.LastActivityTime:HH:mm:ss})");
-                    }
-                    else
-                    {
-                        // 更新活躍連線的最後活動時間
-                        client.LastActivityTime = currentTime;
-                    }
-                }
-                
-                // 移除逾時連線
-                foreach (var expiredClient in expiredConnections)
-                {
-                    _clientConnections.Remove(expiredClient);
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 已移除逾時連線: {expiredClient.Id}");
-                }
-                
-                // 記錄刷新後的連線數
-                int afterCount = _clientConnections.Count;
-                int removedCount = beforeCount - afterCount;
-                
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 刷新後連線數: {afterCount}");
-                if (removedCount > 0)
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 已清理逾時連線: {removedCount} 個");
-                }
-                
-                // 顯示詳細的連線統計
-                DisplayConnectionStatistics();
-                
-                // 顯示每個活躍連線的詳細資訊
-                if (_clientConnections.Count > 0)
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 📊 活躍連線詳情:");
-                    foreach (var client in _clientConnections)
-                    {
-                        var duration = currentTime - client.ConnectTime;
-                        AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → {client.IpAddress} | 連線時長: {duration.TotalMinutes:F1}分鐘 | 類型: {client.RequestType}");
-                    }
-                }
-                else
-                {
-                    AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 📊 目前無活躍連線");
-                }
-                
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ✅ 用戶端列表重新整理完成");
-                UpdateStatus($"✅ 用戶端列表已更新 - 活躍連線: {afterCount} 個");
-                
-                // 更新屬性通知
-                OnPropertyChanged(nameof(ClientCount));
-                
-                // 如果有連線被清理，顯示通知
-                if (removedCount > 0)
-                {
-                    MessageBox.Show($"用戶端列表已更新\n\n• 活躍連線: {afterCount} 個\n• 已清理逾時連線: {removedCount} 個", 
-                        "重新整理完成", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"❌ 重新整理失敗: {ex.Message}");
-                AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 重新整理用戶端列表時發生異常: {ex.Message}");
-                MessageBox.Show($"重新整理失敗:\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {            }
         }
 
         /// <summary>
@@ -1768,7 +1625,8 @@ namespace KINSUS
         {
             // 當選中用戶端時啟用踢除按鈕
             btnKickClient.IsEnabled = dgClients.SelectedItem != null;
-        }        /// <summary>
+        }        
+        /// <summary>
         /// 測試 IoT 連接
         /// </summary>
         /// <param name="endpoint">IoT 端點 URL</param>
@@ -1893,7 +1751,8 @@ namespace KINSUS
             return _ddsService != null && 
                    !string.IsNullOrEmpty(_ddsService.RemoteApiUrl) && 
                    btnDisconnectIoT.IsEnabled;
-        }        /// <summary>
+        }        
+        /// <summary>
         /// 顯示連線統計資訊（增強版）
         /// </summary>
         private void DisplayConnectionStatistics()
@@ -2041,7 +1900,8 @@ namespace KINSUS
                 AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✗ 本地 API 測試異常: {ex.Message}");
                 return false;
             }
-        }/// <summary>
+        }
+        /// <summary>
         /// 顯示安全性和效能狀態（增強版）
         /// </summary>
         private void DisplaySecurityAndPerformanceStatus()
@@ -2163,7 +2023,8 @@ namespace KINSUS
                 AppendServerLog($"[{DateTime.Now:HH:mm:ss}] ❌ 連線品質測試異常: {ex.Message}");
                 return false;
             }
-        }        /// <summary>
+        }        
+        /// <summary>
         /// 連線品質測試按鈕點擊事件
         /// </summary>
         private async void btnConnectionQuality_Click(object sender, RoutedEventArgs e)
