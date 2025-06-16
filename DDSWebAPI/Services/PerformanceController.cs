@@ -56,6 +56,17 @@ namespace DDSWebAPI.Services
         /// <returns>檢查結果</returns>
         public PerformanceCheckResult CheckRateLimit(string clientId)
         {
+            return CheckRateLimit(clientId, isExistingConnection: false);
+        }
+
+        /// <summary>
+        /// 檢查請求頻率限制（支援既有連線）
+        /// </summary>
+        /// <param name="clientId">用戶端識別碼（通常使用 IP 位址）</param>
+        /// <param name="isExistingConnection">是否為既有連線</param>
+        /// <returns>檢查結果</returns>
+        public PerformanceCheckResult CheckRateLimit(string clientId, bool isExistingConnection)
+        {
             if (string.IsNullOrEmpty(clientId))
             {
                 return new PerformanceCheckResult
@@ -74,14 +85,17 @@ namespace DDSWebAPI.Services
                 // 清理超過1分鐘的舊記錄
                 tracker.RequestTimes.RemoveAll(time => (now - time).TotalMinutes > 1);
 
+                // 對既有連線給予更寬鬆的限制（2倍頻率）
+                int effectiveLimit = isExistingConnection ? _maxRequestsPerMinute * 2 : _maxRequestsPerMinute;
+
                 // 檢查是否超過限制
-                if (tracker.RequestTimes.Count >= _maxRequestsPerMinute)
+                if (tracker.RequestTimes.Count >= effectiveLimit)
                 {
                     return new PerformanceCheckResult
                     {
                         IsAllowed = false,
                         ErrorCode = "RATE_002",
-                        ErrorMessage = $"超過請求頻率限制，每分鐘最多 {_maxRequestsPerMinute} 次請求",
+                        ErrorMessage = $"超過請求頻率限制，{(isExistingConnection ? "既有連線" : "新連線")}每分鐘最多 {effectiveLimit} 次請求",
                         RetryAfterSeconds = 60
                     };
                 }

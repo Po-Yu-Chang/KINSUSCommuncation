@@ -8,10 +8,9 @@ namespace DDSWebAPI.Models
     /// </summary>
     public class ClientConnection : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        private string _id;
+        public event PropertyChangedEventHandler PropertyChanged;        private string _id;
         private string _ipAddress;
+        private string _connectionId;
         private DateTime _connectTime;
         private DateTime _lastActivityTime;
         private string _requestType;
@@ -39,6 +38,18 @@ namespace DDSWebAPI.Models
             {
                 _ipAddress = value;
                 OnPropertyChanged(nameof(IpAddress));
+            }        }
+
+        /// <summary>
+        /// 連線識別碼 (用於持久連線追蹤)
+        /// </summary>
+        public string ConnectionId
+        {
+            get { return _connectionId; }
+            set
+            {
+                _connectionId = value;
+                OnPropertyChanged(nameof(ConnectionId));
             }
         }
 

@@ -718,45 +718,71 @@ namespace DDSWebAPI.Services
         /// 處理單一 HTTP 請求的完整流程
         /// 
         /// 處理流程:
-        /// 1. 產生用戶端識別碼和取得 IP 位址
-        /// 2. 效能和安全性檢查
-        /// 3. 觸發用戶端連接事件
-        /// 4. 判斷請求類型 (WebSocket/HTTP)
-        /// 5. 讀取請求內容
-        /// 6. 路由到對應的處理方法
-        /// 7. 處理異常和清理資源
+        /// 1. 檢查是否為既有連線
+        /// 2. 對新連線進行完整驗證，既有連線跳過部分驗證
+        /// 3. 判斷請求類型 (WebSocket/HTTP)
+        /// 4. 讀取請求內容
+        /// 5. 路由到對應的處理方法
+        /// 6. 支援持久連線，按需關閉資源
         /// 
         /// </summary>
         /// <param name="context">HTTP 請求上下文，包含請求和回應物件</param>
         private async Task HandleRequestAsync(HttpListenerContext context)
         {
-            // 產生唯一的用戶端識別碼，用於追蹤和日誌記錄
-            string clientId = _utilityService?.GenerateUniqueId() ?? Guid.NewGuid().ToString();           
             string clientIp = GetClientIpAddress(context.Request);
             string requestBody = string.Empty;
             string connectionToken = null;
+            bool isNewConnection = false;
+            bool keepAlive = false;
+              // 檢查是否為 Keep-Alive 連線
+            string connectionHeader = context.Request.Headers["Connection"];            keepAlive = string.Equals(connectionHeader, "keep-alive", StringComparison.OrdinalIgnoreCase);
+            
+            // 檢查是否為既有連線 (通過 IP 位址判斷)
+            ClientConnection existingConnection = null;
+            
+            lock (_clientsLock)
+            {
+                existingConnection = _connectedClients.Values
+                    .FirstOrDefault(c => c.IpAddress == clientIp && 
+                                   DateTime.Now.Subtract(c.LastActivityTime).TotalMinutes < 5);
+            }
+            
+            isNewConnection = existingConnection == null;
+            string clientId = existingConnection?.Id ?? (_utilityService?.GenerateUniqueId() ?? Guid.NewGuid().ToString());
+            
+            // 為新連線產生 ConnectionId，既有連線使用現有的
+            string connectionId = existingConnection?.ConnectionId ?? GenerateConnectionId(context.Request);
 
             try
-            {                // 1. 效能控制 - 檢查連線限制
-                var concurrencyCheck = await _performanceController.CheckConcurrencyLimitAsync();
-                if (!concurrencyCheck.IsAllowed)
+            {
+                // === 只對新連線進行完整驗證 ===
+                if (isNewConnection)
                 {
-                    var errorResponse = CreateErrorResponse($"伺服器忙碌中：{concurrencyCheck.ErrorMessage}");
-                    await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.ServiceUnavailable);
-                    return;
-                }
-                connectionToken = concurrencyCheck.ConnectionToken;// 2. 安全性檢查 - IP 白名單驗證
-                var ipValidationResult = _securityMiddleware.ValidateIPWhitelist(clientIp);
-                if (!ipValidationResult.IsValid)
-                {
-                    var errorResponse = CreateErrorResponse($"存取被拒絕：{ipValidationResult.ErrorMessage}");
-                    await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.Forbidden);
-                    return;
-                }
+                    // 1. 效能控制 - 檢查連線限制 (僅新連線)
+                    var concurrencyCheck = await _performanceController.CheckConcurrencyLimitAsync();
+                    if (!concurrencyCheck.IsAllowed)
+                    {
+                        var errorResponse = CreateErrorResponse($"伺服器忙碌中：{concurrencyCheck.ErrorMessage}");
+                        await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.ServiceUnavailable);
+                        return;
+                    }
+                    connectionToken = concurrencyCheck.ConnectionToken;                    connectionToken = concurrencyCheck.ConnectionToken;
 
-                // 3. 觸發用戶端連接事件，讓外部模組可以進行連接管理
-                OnClientConnected(clientId, clientIp);
-                RegisterClientConnection(clientId, clientIp);
+                    // 2. 安全性檢查 - IP 白名單驗證 (僅新連線)
+                    var ipValidationResult = _securityMiddleware.ValidateIPWhitelist(clientIp);
+                    if (!ipValidationResult.IsValid)
+                    {
+                        var errorResponse = CreateErrorResponse($"存取被拒絕：{ipValidationResult.ErrorMessage}");
+                        await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.Forbidden);
+                        return;
+                    }
+
+                    // 3. 觸發用戶端連接事件 (僅新連線)
+                    OnClientConnected(clientId, clientIp);
+                }
+                
+                // === 註冊或更新連線資訊 ===
+                RegisterClientConnection(clientId, clientIp, connectionId, isNewConnection);
 
                 // 4. 檢查是否為 WebSocket 升級請求
                 if (context.Request.IsWebSocketRequest)
@@ -771,6 +797,9 @@ namespace DDSWebAPI.Services
                 {
                     requestBody = await reader.ReadToEndAsync();
                 }               
+                
+                // === 對所有請求進行必要的檢查 ===
+                
                 // 6. 效能控制 - 檢查資料大小限制
                 var dataSizeCheck = _performanceController.CheckDataSizeLimit(requestBody);
                 if (!dataSizeCheck.IsAllowed)
@@ -779,21 +808,25 @@ namespace DDSWebAPI.Services
                     await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.RequestEntityTooLarge);
                     return;
                 }                
-                // 7. 效能控制 - 檢查請求頻率限制
-                var rateLimitCheck = _performanceController.CheckRateLimit(clientIp);
+                
+                // 7. 效能控制 - 檢查請求頻率限制 (根據連線狀態調整)
+                var rateLimitCheck = isNewConnection ? 
+                    _performanceController.CheckRateLimit(clientIp) : 
+                    _performanceController.CheckRateLimit(clientIp, isExistingConnection: true);
                 if (!rateLimitCheck.IsAllowed)
                 {
                     var errorResponse = CreateErrorResponse($"請求頻率過高：{rateLimitCheck.ErrorMessage}");
-                    // 使用 429 Too Many Requests - 在舊版 .NET 中可能不存在，改用 ServiceUnavailable
                     await SendResponseAsync(context.Response, errorResponse, HttpStatusCode.ServiceUnavailable);
                     return;
                 }
 
-                // 8. 安全性檢查 - API 金鑰驗證 (如果需要)
+                // 8. 安全性檢查 - API 金鑰驗證 (對新連線進行較嚴格檢查)
                 if (context.Request.Url.AbsolutePath.StartsWith("/api/"))
                 {
                     var authHeader = context.Request.Headers["Authorization"];
-                    var authResult = _securityMiddleware.ValidateApiKey(authHeader);
+                    var authResult = isNewConnection ? 
+                        _securityMiddleware.ValidateApiKey(authHeader) : 
+                        _securityMiddleware.ValidateApiKey(authHeader, isExistingConnection: true);
                     if (!authResult.IsValid)
                     {
                         var errorResponse = CreateErrorResponse($"認證失敗：{authResult.ErrorMessage}");
@@ -802,7 +835,7 @@ namespace DDSWebAPI.Services
                     }
                 }
 
-                // 9. 觸發訊息接收事件，讓外部模組可以進行日誌記錄或監控
+                // 9. 觸發訊息接收事件
                 if (!string.IsNullOrEmpty(requestBody))
                 {
                     OnMessageReceived(requestBody, clientId, clientIp);
@@ -827,29 +860,41 @@ namespace DDSWebAPI.Services
                 }
 
                 // 記錄錯誤到日誌
-                OnServerStatusChanged(ServerStatus.Error, $"處理來自 {clientIp} 的請求時發生錯誤: {ex.Message}");            }
+                OnServerStatusChanged(ServerStatus.Error, $"處理來自 {clientIp} 的請求時發生錯誤: {ex.Message}");            
+            }
             finally
             {
                 try
                 {
-                    // 確保回應串流被正確關閉，釋放資源
-                    context.Response.Close();
-                }
-                catch
+                    // === 持久連線支援 ===
+                    // 只有在非 Keep-Alive 或發生錯誤時才關閉連線
+                    if (/*!keepAlive ||*/ context.Response.StatusCode >= 400)
+                    {
+                        context.Response.Close();
+                        
+                        // 移除用戶端連接記錄
+                        if (!keepAlive)
+                        {
+                            UnregisterClientConnection(clientId);
+                            OnClientDisconnected(clientId, clientIp, "連線關閉");
+                        }
+                    }
+                    else
+                    {
+                        // Keep-Alive 連線：設置回應標頭但不關閉連線
+                        context.Response.Headers.Add("Connection", "keep-alive");
+                        context.Response.Headers.Add("Keep-Alive", "timeout=30, max=100");
+                    }
+                }                catch
                 {
                     // 忽略關閉回應時的錯誤
-                    // 這種情況通常發生在連接已經中斷的時候
-                }                // 釋放效能控制器的連線資源
+                }
+
+                // 釋放效能控制器的連線資源 (僅新連線)
                 if (!string.IsNullOrEmpty(connectionToken))
                 {
                     _performanceController.ReleaseConcurrency(connectionToken);
                 }
-
-                // 移除用戶端連接記錄
-                UnregisterClientConnection(clientId);
-
-                // 觸發用戶端斷線事件
-                OnClientDisconnected(clientId, clientIp, "請求處理完成");
             }
         }
 
@@ -1170,6 +1215,19 @@ namespace DDSWebAPI.Services
                 { ".ttf", "application/font-ttf" },
                 { ".eot", "application/vnd.ms-fontobject" }
             };
+        }        /// <summary>
+        /// 產生連線識別碼
+        /// 根據 IP 位址和 User-Agent 組合產生唯一識別
+        /// </summary>
+        /// <param name="request">HTTP 請求物件</param>
+        /// <returns>連線識別碼</returns>
+        private string GenerateConnectionId(HttpListenerRequest request)        {
+            string ip = GetClientIpAddress(request);
+            string userAgent = request.UserAgent ?? "Unknown";
+            
+            // 使用 IP + User-Agent 的雜湊值作為連線識別碼
+            var combined = $"{ip}|{userAgent}";
+            return Math.Abs(combined.GetHashCode()).ToString();
         }
 
         /// <summary>
@@ -1358,23 +1416,24 @@ namespace DDSWebAPI.Services
 
         #endregion
 
-        #region 連線管理方法
-
-        /// <summary>
+        #region 連線管理方法        /// <summary>
         /// 註冊用戶端連接
         /// </summary>
         /// <param name="clientId">用戶端識別碼</param>
         /// <param name="clientIp">用戶端 IP 位址</param>
-        private void RegisterClientConnection(string clientId, string clientIp)
+        /// <param name="connectionId">連線識別碼</param>
+        /// <param name="isNewConnection">是否為新連線</param>
+        private void RegisterClientConnection(string clientId, string clientIp, string connectionId, bool isNewConnection)
         {
             lock (_clientsLock)
             {
-                if (!_connectedClients.ContainsKey(clientId))
+                if (isNewConnection || !_connectedClients.ContainsKey(clientId))
                 {
                     var connection = new ClientConnection
                     {
                         Id = clientId,
                         IpAddress = clientIp,
+                        ConnectionId = connectionId,
                         ConnectTime = DateTime.Now,
                         LastActivityTime = DateTime.Now,
                         RequestType = "HTTP"

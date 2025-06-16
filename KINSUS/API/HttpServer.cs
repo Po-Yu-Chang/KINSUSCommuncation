@@ -171,6 +171,10 @@ namespace OthinCloud.API
                     HttpListenerRequest req = ctx.Request;
                     HttpListenerResponse resp = ctx.Response;
                     
+                    // 檢查是否為 Keep-Alive 連線
+                    string connectionHeader = req.Headers["Connection"];
+                    bool keepAlive = string.Equals(connectionHeader, "keep-alive", StringComparison.OrdinalIgnoreCase);
+                    
                     // 生成請求的唯一ID
                     string clientId = Guid.NewGuid().ToString();
                     string clientIp = req.RemoteEndPoint.ToString();
@@ -187,6 +191,7 @@ namespace OthinCloud.API
                     Console.WriteLine($"Method: {req.HttpMethod}");
                     Console.WriteLine($"UserAgent: {req.UserAgent}");
                     Console.WriteLine($"Client IP: {clientIp}");
+                    Console.WriteLine($"Keep-Alive: {keepAlive}");
                     Console.WriteLine();
 
                     // Basic routing based on URL path and ServiceName in body
@@ -215,7 +220,7 @@ namespace OthinCloud.API
                                 catch (JsonException jsonEx)
                                 {
                                     Console.WriteLine($"JSON Deserialization Error: {jsonEx.Message}");
-                                    await SendErrorResponse(resp, HttpStatusCode.BadRequest, baseRequest?.RequestID, "Invalid JSON format");
+                                    await SendErrorResponse(resp, HttpStatusCode.BadRequest, baseRequest?.RequestID, "Invalid JSON format", keepAlive: keepAlive);
                                     continue; // Skip further processing for this request
                                 }
 
@@ -225,27 +230,27 @@ namespace OthinCloud.API
                                     switch (baseRequest.ServiceName)
                                     {
                                         case "SEND_MESSAGE_COMMAND":
-                                            await HandleSendMessageCommand(requestBody, resp, baseRequest.RequestID);
+                                            await HandleSendMessageCommand(requestBody, resp, baseRequest.RequestID, keepAlive);
                                             break;
                                         case "DATE_MESSAGE_COMMAND":
-                                            await HandleDateMessageCommand(requestBody, resp, baseRequest.RequestID);
+                                            await HandleDateMessageCommand(requestBody, resp, baseRequest.RequestID, keepAlive);
                                             break;
                                         case "SWITCH_RECIPE_COMMAND":
-                                            await HandleSwitchRecipeCommand(requestBody, resp, baseRequest.RequestID);
+                                            await HandleSwitchRecipeCommand(requestBody, resp, baseRequest.RequestID, keepAlive);
                                             break;
                                         case "DEVICE_CONTROL_COMMAND": // Reserved, but add handler
-                                            await HandleDeviceControlCommand(requestBody, resp, baseRequest.RequestID);
+                                            await HandleDeviceControlCommand(requestBody, resp, baseRequest.RequestID, keepAlive);
                                             break;
                                         // Add cases for other service names if this server needs to handle them
                                         default:
                                             Console.WriteLine($"Unknown ServiceName: {baseRequest.ServiceName}");
-                                            await SendErrorResponse(resp, HttpStatusCode.NotFound, baseRequest.RequestID, $"Unknown service: {baseRequest.ServiceName}");
+                                            await SendErrorResponse(resp, HttpStatusCode.NotFound, baseRequest.RequestID, $"Unknown service: {baseRequest.ServiceName}", keepAlive: keepAlive);
                                             break;
                                     }
                                 }
                                 else
                                 {
-                                    await SendErrorResponse(resp, HttpStatusCode.BadRequest, null, "Could not parse request body");
+                                    await SendErrorResponse(resp, HttpStatusCode.BadRequest, null, "Could not parse request body", keepAlive: keepAlive);
                                 }
                             }
                         }
@@ -253,7 +258,7 @@ namespace OthinCloud.API
                     else
                     {
                         // Handle non-POST requests or requests without body if necessary
-                        await SendErrorResponse(resp, HttpStatusCode.MethodNotAllowed, null, "Only POST requests are allowed");
+                        await SendErrorResponse(resp, HttpStatusCode.MethodNotAllowed, null, "Only POST requests are allowed", keepAlive: keepAlive);
                     }
                 }
                 catch (HttpListenerException hlex)
@@ -290,7 +295,7 @@ namespace OthinCloud.API
         ///     - actionType: 主動類別 (0: 間隔消息, 1: 持續消息)
         ///     - intervalSecondTime: 間隔秒數設定 (0-255)
         /// </remarks>
-        private async Task HandleSendMessageCommand(string requestBody, HttpListenerResponse resp, string requestID)
+        private async Task HandleSendMessageCommand(string requestBody, HttpListenerResponse resp, string requestID, bool keepAlive = false)
         {
             try
             {
@@ -304,20 +309,18 @@ namespace OthinCloud.API
                     Console.WriteLine($"  ActionType: {commandData.ActionType}");
                     Console.WriteLine($"  Interval: {commandData.IntervalSecondTime}");
                     // --- Add actual device interaction logic here ---
-                }
-
-                // Send success response
-                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功");
+                }                // Send success response
+                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功", keepAlive: keepAlive);
             }
             catch (JsonException jsonEx)
             {
                 Console.WriteLine($"SEND_MESSAGE_COMMAND Deserialization Error: {jsonEx.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for SEND_MESSAGE_COMMAND");
+                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for SEND_MESSAGE_COMMAND", keepAlive: keepAlive);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error handling SEND_MESSAGE_COMMAND: {ex.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command");
+                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command", keepAlive: keepAlive);
             }
         }
 
@@ -335,7 +338,7 @@ namespace OthinCloud.API
         ///     - time: 時間
         ///     - week: 星期 (0-6，0 表示週日)
         /// </remarks>
-        private async Task HandleDateMessageCommand(string requestBody, HttpListenerResponse resp, string requestID)
+        private async Task HandleDateMessageCommand(string requestBody, HttpListenerResponse resp, string requestID, bool keepAlive = false)
         {
             try
             {
@@ -348,20 +351,18 @@ namespace OthinCloud.API
                     Console.WriteLine($"  Time to sync: {commandData.Time}");
                     Console.WriteLine($"  Week: {commandData.Week}");
                     // --- Add actual device time sync logic here ---
-                }
-
-                // Send success response
-                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功");
+                }                // Send success response
+                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功", keepAlive: keepAlive);
             }
             catch (JsonException jsonEx)
             {
                 Console.WriteLine($"DATE_MESSAGE_COMMAND Deserialization Error: {jsonEx.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for DATE_MESSAGE_COMMAND");
+                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for DATE_MESSAGE_COMMAND", keepAlive: keepAlive);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error handling DATE_MESSAGE_COMMAND: {ex.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command");
+                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command", keepAlive: keepAlive);
             }
         }
 
@@ -382,7 +383,7 @@ namespace OthinCloud.API
         ///     - vehicleCode: 盒子碼
         ///     - recipeParams: 配方參數 (由供應商協定)
         /// </remarks>
-        private async Task HandleSwitchRecipeCommand(string requestBody, HttpListenerResponse resp, string requestID)
+        private async Task HandleSwitchRecipeCommand(string requestBody, HttpListenerResponse resp, string requestID, bool keepAlive = false)
         {
             try
             {
@@ -397,20 +398,18 @@ namespace OthinCloud.API
                     Console.WriteLine($"  GfNum: {commandData.GfNum}");
                     Console.WriteLine($"  Pnum: {commandData.Pnum}");
                     // --- Add actual device recipe handling logic here ---
-                }
-
-                // Send success response
-                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "盒子資訊接收成功");
+                }                // Send success response
+                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "盒子資訊接收成功", keepAlive: keepAlive);
             }
             catch (JsonException jsonEx)
             {
                 Console.WriteLine($"SWITCH_RECIPE_COMMAND Deserialization Error: {jsonEx.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for SWITCH_RECIPE_COMMAND");
+                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for SWITCH_RECIPE_COMMAND", keepAlive: keepAlive);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error handling SWITCH_RECIPE_COMMAND: {ex.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command");
+                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command", keepAlive: keepAlive);
             }
         }
 
@@ -428,7 +427,7 @@ namespace OthinCloud.API
         /// 請求主要參數：
         ///     - command: 指令類型 (1: 設備啟動, 2: 設備停止)
         /// </remarks>
-        private async Task HandleDeviceControlCommand(string requestBody, HttpListenerResponse resp, string requestID)
+        private async Task HandleDeviceControlCommand(string requestBody, HttpListenerResponse resp, string requestID, bool keepAlive = false)
         {
              try
             {
@@ -442,18 +441,17 @@ namespace OthinCloud.API
                     // --- Add actual device control logic here ---
                 }
 
-                // Send success response
-                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功");
+                // Send success response                await SendSuccessResponse<object>(resp, request.RequestID, request.ServiceName, request.DevCode, null, "執行成功", keepAlive: keepAlive);
             }
             catch (JsonException jsonEx)
             {
                 Console.WriteLine($"DEVICE_CONTROL_COMMAND Deserialization Error: {jsonEx.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for DEVICE_CONTROL_COMMAND");
+                await SendErrorResponse(resp, HttpStatusCode.BadRequest, requestID, "Invalid data format for DEVICE_CONTROL_COMMAND", keepAlive: keepAlive);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error handling DEVICE_CONTROL_COMMAND: {ex.Message}");
-                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command");
+                await SendErrorResponse(resp, HttpStatusCode.InternalServerError, requestID, "Internal server error handling command", keepAlive: keepAlive);
             }
         }
 
@@ -467,12 +465,11 @@ namespace OthinCloud.API
         /// <param name="requestID">請求 ID，用於追蹤請求與響應的對應關係</param>
         /// <param name="serviceName">服務名稱，標識請求的接口類型</param>
         /// <param name="devCode">設備編碼</param>
-        /// <param name="data">響應業務資料</param>
-        /// <param name="message">響應消息</param>
+        /// <param name="data">響應業務資料</param>        /// <param name="message">響應消息</param>
         /// <remarks>
         /// 根據 MES 接口規範，成功響應狀態碼為 "0000"
         /// </remarks>
-        private async Task SendSuccessResponse<T>(HttpListenerResponse resp, string requestID, string serviceName, string devCode, List<T> data, string message = "執行成功")
+        private async Task SendSuccessResponse<T>(HttpListenerResponse resp, string requestID, string serviceName, string devCode, List<T> data, string message = "執行成功", bool keepAlive = false)
         {
             var responseObj = new BaseResponse<T>
             {
@@ -494,19 +491,40 @@ namespace OthinCloud.API
             resp.ContentLength64 = buffer.Length;
             resp.StatusCode = (int)HttpStatusCode.OK;
 
+            // 設置 Connection 標頭
+            if (keepAlive)
+            {
+                resp.Headers.Add("Connection", "keep-alive");
+                resp.KeepAlive = true;
+            }
+            else
+            {
+                resp.Headers.Add("Connection", "close");
+                resp.KeepAlive = false;
+            }
+
             await resp.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-            resp.Close();
-            Console.WriteLine("Success response sent.");
+
+            // 只有在非 keep-alive 的情況下才關閉連線
+            if (!keepAlive)
+            {
+                resp.Close();
+            }
+
+            Console.WriteLine($"Success response sent. Keep-alive: {keepAlive}");
         }
 
-        private async Task SendErrorResponse(HttpListenerResponse resp, HttpStatusCode statusCode, string requestID, string message, string serviceName = null, string devCode = null)
+        private async Task SendErrorResponse(HttpListenerResponse resp, HttpStatusCode statusCode, string requestID, string message, string serviceName = null, string devCode = null, bool keepAlive = false)
         {
-            var responseObj = new BaseResponse<object>            {
-                RequestID = requestID ?? Guid.NewGuid().ToString(),                ServiceName = serviceName,
+            var responseObj = new BaseResponse<object>
+            {
+                RequestID = requestID ?? Guid.NewGuid().ToString(),
+                ServiceName = serviceName,
                 TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 DevCode = devCode,
                 Operator = null,
-                Status = "9999",                Message = message,
+                Status = "9999",
+                Message = message,
                 Data = null,
                 ExtendData = null
             };
@@ -518,9 +536,27 @@ namespace OthinCloud.API
             resp.ContentLength64 = buffer.Length;
             resp.StatusCode = (int)statusCode;
 
+            // 設置 Connection 標頭
+            if (keepAlive)
+            {
+                resp.Headers.Add("Connection", "keep-alive");
+                resp.KeepAlive = true;
+            }
+            else
+            {
+                resp.Headers.Add("Connection", "close");
+                resp.KeepAlive = false;
+            }
+
             await resp.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-            resp.Close();
-            Console.WriteLine($"Error response sent: {statusCode} - {message}");
+
+            // 只有在非 keep-alive 的情況下才關閉連線
+            if (!keepAlive)
+            {
+                resp.Close();
+            }
+
+            Console.WriteLine($"Error response sent: {statusCode} - {message}. Keep-alive: {keepAlive}");
         }
 
         // --- Client Role Methods  ---

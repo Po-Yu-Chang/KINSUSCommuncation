@@ -65,6 +65,29 @@ namespace KINSUS
         /// </summary>
         private int _successfulApiRequests = 0;
 
+        /// <summary>
+        /// 是否已建立持久連線
+        /// </summary>
+        private bool _isPersistentConnectionEstablished = false;
+
+        /// <summary>
+        /// 持久連線建立時間
+        /// </summary>
+        private DateTime? _connectionEstablishedTime = null;
+
+        /// <summary>
+        /// 連線重試次數
+        /// </summary>
+        private int _connectionRetryCount = 0;        /// <summary>
+        /// 最大重試次數
+        /// </summary>
+        private const int MAX_RETRY_COUNT = 5; // 增加重試次數從3次到5次
+
+        /// <summary>
+        /// 持久連線監控計時器
+        /// </summary>
+        private DispatcherTimer _connectionMonitorTimer;
+
         #endregion
 
         #region 列舉
@@ -174,6 +197,8 @@ namespace KINSUS
         private void InitializeTimers()
         {
             InitializeDateTimeTimer();
+            // 初始化持久連線監控計時器
+            InitializeConnectionMonitorTimer();
         }
 
         /// <summary>
@@ -196,6 +221,25 @@ namespace KINSUS
             
             _dateTimeTimer.Start();
         }        /// <summary>
+        /// 初始化持久連線監控計時器
+        /// </summary>
+        private void InitializeConnectionMonitorTimer()
+        {
+            _connectionMonitorTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(15) // 縮短為每15秒檢查一次連線狀態
+            };
+            
+            _connectionMonitorTimer.Tick += async (sender, e) =>
+            {
+                if (_isPersistentConnectionEstablished)
+                {
+                    await MonitorPersistentConnection();
+                }
+            };
+            
+            _connectionMonitorTimer.Start();
+        }/// <summary>
         /// 初始化 API 請求範本
         /// </summary>
         private void InitializeApiTemplates()
@@ -578,17 +622,22 @@ namespace KINSUS
             
             // 更新狀態
             UpdateStatus("準備就緒，請設定操作模式並啟動所需功能");
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// 視窗關閉事件
         /// </summary>
         private void MainWindow_Closed(object sender, EventArgs e)
         {
             try
             {
+                // 關閉持久連線
+                if (_isPersistentConnectionEstablished)
+                {
+                    Task.Run(async () => await ClosePersistentConnection()).Wait(TimeSpan.FromSeconds(5));
+                }
+                
                 // 停止計時器
                 _dateTimeTimer?.Stop();
+                _connectionMonitorTimer?.Stop();
                 
                 // 釋放 DDS 服務資源
                 _ddsService?.Dispose();
@@ -761,7 +810,7 @@ namespace KINSUS
             {
                 MessageBox.Show($"停止伺服器失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }        }        /// <summary>
-        /// 發送 API 請求按鈕點擊事件（增強版）
+        /// 發送 API 請求按鈕點擊事件（增強版 - 使用持久連線）
         /// </summary>
         private async void btnSendRequest_Click(object sender, RoutedEventArgs e)
         {
@@ -798,10 +847,10 @@ namespace KINSUS
                 }
                 
                 btnSendRequest.IsEnabled = false;
-                UpdateStatus("正在發送 API 請求...");
+                UpdateStatus("正在透過持久連線發送 API 請求...");
                 
                 // 顯示請求詳細資訊
-                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 📤 準備發送 API 請求");
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 📤 準備透過持久連線發送 API 請求");
                 AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 目標端點: {endpoint}");
                 AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 請求大小: {System.Text.Encoding.UTF8.GetByteCount(requestBody)} 位元組");
                 AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 請求時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -812,21 +861,55 @@ namespace KINSUS
                     string apiTag = selected.Tag?.ToString() ?? "UNKNOWN";
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → API 類型: {apiTag}");
                 }
-                  var startTime = DateTime.Now;
+
+                // 檢查持久連線狀態，如果未建立則先建立
+                if (!_isPersistentConnectionEstablished)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🔗 檢測到未建立持久連線，正在建立...");
+                    bool connectionEstablished = await EstablishPersistentConnection();
+                    
+                    if (!connectionEstablished)
+                    {
+                        AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 無法建立持久連線，改為使用短連線模式");
+                        UpdateStatus("❌ 持久連線建立失敗，改為短連線模式");
+                    }
+                }
+
+                var startTime = DateTime.Now;
                 
-                // 執行本地 API 端點測試
-                bool localApiTestResult = await TestApiEndpoint(endpoint, requestBody);
+                // 透過持久連線發送請求
+                bool localApiTestResult = false;
+                
+                if (_isPersistentConnectionEstablished)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🔗 使用已建立的持久連線發送請求");
+                    
+                    // 顯示連線持續時間
+                    if (_connectionEstablishedTime.HasValue)
+                    {
+                        var connectionDuration = DateTime.Now - _connectionEstablishedTime.Value;
+                        AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 持久連線已維持: {connectionDuration.TotalMinutes:F1} 分鐘");
+                    }
+                    
+                    localApiTestResult = await TestApiEndpoint(endpoint, requestBody);
+                }
+                else
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 📡 使用短連線模式發送請求");
+                    localApiTestResult = await TestApiEndpoint(endpoint, requestBody);
+                }
                 
                 var endTime = DateTime.Now;
                 var responseTime = (endTime - startTime).TotalMilliseconds;
                 
                 if (localApiTestResult)
                 {
-                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✅ 本地 API 測試成功");
+                    string connectionType = _isPersistentConnectionEstablished ? "持久連線" : "短連線";
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✅ {connectionType} API 測試成功");
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 回應時間: {responseTime:F0} 毫秒");
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 狀態: 成功");
                     
-                    UpdateStatus($"✅ 本地 API 測試成功 ({responseTime:F0}ms)");
+                    UpdateStatus($"✅ {connectionType} API 測試成功 ({responseTime:F0}ms)");
                     
                     // 如果本地測試成功，再嘗試向遠端 API 發送資料
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🌐 嘗試向遠端 API 發送資料...");
@@ -854,12 +937,24 @@ namespace KINSUS
                 }
                 else
                 {
-                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 本地 API 測試失敗");
+                    string connectionType = _isPersistentConnectionEstablished ? "持久連線" : "短連線";
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ {connectionType} API 測試失敗");
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 回應時間: {responseTime:F0} 毫秒");
                     AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 狀態: 失敗");
-                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 請確認本地伺服器是否正在運行");
                     
-                    UpdateStatus($"❌ 本地 API 測試失敗 ({responseTime:F0}ms)");
+                    if (_isPersistentConnectionEstablished)
+                    {
+                        AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 可能需要重新建立持久連線");
+                        // 標記持久連線為失效，下次會重新建立
+                        _isPersistentConnectionEstablished = false;
+                        _connectionEstablishedTime = null;
+                    }
+                    else
+                    {
+                        AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 請確認本地伺服器是否正在運行");
+                    }
+                    
+                    UpdateStatus($"❌ {connectionType} API 測試失敗 ({responseTime:F0}ms)");
                 }
                 
                 // 更新連線統計
@@ -1396,12 +1491,254 @@ namespace KINSUS
             catch (Exception ex)
             {
                 MessageBox.Show($"儲存範本失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+            }        }
 
         #endregion
 
         #region 新增的事件處理函式
+
+        /// <summary>
+        /// 建立持久連線
+        /// </summary>
+        /// <returns>連線建立結果</returns>
+        private async Task<bool> EstablishPersistentConnection()
+        {
+            try
+            {
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🔗 正在建立持久連線...");
+                
+                // 檢查伺服器是否運作中
+                if (_ddsService?.IsServerRunning != true)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 本地伺服器未執行，無法建立持久連線");
+                    return false;
+                }                // 執行連線測試
+                // 使用正確的連線測試端點 (對應伺服器端的 /api/connection)
+                string testEndpoint = "/api/connection";
+                
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 使用測試端點: {testEndpoint}");
+
+                var testData = new
+                {
+                    requestID = $"CONN_TEST_{DateTime.Now:yyyyMMddHHmmss}",
+                    serviceName = "CONNECTION_TEST_COMMAND",
+                    timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    devCode = txtDevCode?.Text ?? "KINSUS001",
+                    @operator = "SYSTEM",
+                    data = new[]
+                    {
+                        new
+                        {
+                            testType = "PERSISTENT_CONNECTION",
+                            message = "持久連線測試",
+                            connectionId = Guid.NewGuid().ToString()
+                        }
+                    }
+                };
+
+                bool connectionTest = await TestApiEndpoint(testEndpoint, Newtonsoft.Json.JsonConvert.SerializeObject(testData));
+                
+                if (connectionTest)
+                {
+                    _isPersistentConnectionEstablished = true;
+                    _connectionEstablishedTime = DateTime.Now;
+                    _connectionRetryCount = 0;
+                    
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✅ 持久連線建立成功");
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 連線時間: {_connectionEstablishedTime:HH:mm:ss}");
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 連線狀態: 已建立");
+                    
+                    UpdateStatus("✅ 持久連線已建立");
+                    return true;
+                }
+                else
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 持久連線建立失敗");
+                    return false;
+                }
+            }            catch (Exception ex)
+            {
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 建立持久連線時發生錯誤: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 監控持久連線狀態
+        /// </summary>
+        private async Task MonitorPersistentConnection()
+        {
+            try
+            {
+                if (!_isPersistentConnectionEstablished || _ddsService?.IsServerRunning != true)
+                {
+                    return;
+                }                // 執行簡單的心跳測試
+                var heartbeatData = new
+                {
+                    requestID = $"HEARTBEAT_{DateTime.Now:yyyyMMddHHmmss}",
+                    serviceName = "CONNECTION_TEST_COMMAND",
+                    timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    devCode = txtDevCode?.Text ?? "KINSUS001",
+                    data = new[]
+                    {
+                        new { 
+                            testType = "HEARTBEAT", 
+                            message = "連線心跳檢測",
+                            interval = 15,
+                            connectionId = _connectionEstablishedTime?.ToString("yyyyMMddHHmmss") ?? "unknown"
+                        }
+                    }
+                };
+
+                string testEndpoint = "/api/connection"; // 使用正確的端點
+                bool heartbeatResult = await TestApiEndpoint(testEndpoint, Newtonsoft.Json.JsonConvert.SerializeObject(heartbeatData));
+                  if (!heartbeatResult)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ⚠️ 持久連線心跳檢測失敗，嘗試重新建立連線...");
+                    await ReconnectPersistentConnection();
+                }
+                else
+                {
+                    // 更新連線持續時間資訊 - 減少頻率輸出
+                    if (_connectionEstablishedTime.HasValue)
+                    {
+                        var duration = DateTime.Now - _connectionEstablishedTime.Value;
+                        
+                        // 每5分鐘輸出一次連線狀態，或者在前30秒內每15秒輸出一次
+                        bool shouldLogStatus = false;
+                        
+                        if (duration.TotalSeconds <= 30)
+                        {
+                            // 前30秒每15秒輸出一次
+                            shouldLogStatus = (duration.TotalSeconds % 15) < 1;
+                        }
+                        else if (duration.TotalMinutes % 5 < 0.25)
+                        {
+                            // 5分鐘間隔輸出
+                            shouldLogStatus = true;
+                        }
+                        
+                        if (shouldLogStatus)
+                        {
+                            AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 💓 持久連線運作正常");
+                            AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 已持續: {duration.TotalMinutes:F1} 分鐘");
+                            AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 心跳間隔: 15秒");
+                            AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 重試計數: {_connectionRetryCount}/{MAX_RETRY_COUNT}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 監控持久連線時發生錯誤: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 重新建立持久連線
+        /// </summary>
+        private async Task ReconnectPersistentConnection()
+        {
+            try
+            {
+                _connectionRetryCount++;
+                
+                if (_connectionRetryCount > MAX_RETRY_COUNT)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 已達到最大重試次數 ({MAX_RETRY_COUNT})，停止重新連線");
+                    _isPersistentConnectionEstablished = false;
+                    _connectionEstablishedTime = null;
+                    UpdateStatus("❌ 持久連線已斷開且無法重新建立");
+                    return;
+                }                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🔄 嘗試重新建立持久連線 (第 {_connectionRetryCount}/{MAX_RETRY_COUNT} 次)...");
+                
+                // 使用較短的等待時間，但不要太短
+                int waitSeconds = Math.Min(5, _connectionRetryCount * 2); // 2, 4, 6, 8, 10 秒
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 等待 {waitSeconds} 秒後重試...");
+                await Task.Delay(waitSeconds * 1000);
+                
+                bool reconnectResult = await EstablishPersistentConnection();
+                
+                if (reconnectResult)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✅ 持久連線重新建立成功");
+                    // 重連成功後，重設重試計數
+                    _connectionRetryCount = 0;
+                }
+                else
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 持久連線重新建立失敗 (嘗試 {_connectionRetryCount}/{MAX_RETRY_COUNT})");
+                    
+                    // 如果還有重試機會，提示下次重試時間
+                    if (_connectionRetryCount < MAX_RETRY_COUNT)
+                    {
+                        AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 將在下一次心跳檢測時重試 (約15秒後)");
+                    }
+                }
+            }            catch (Exception ex)
+            {
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 重新建立持久連線時發生錯誤: {ex.Message}");
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 錯誤類型: {ex.GetType().Name}");
+                
+                // 如果是網路相關錯誤，提供更多資訊
+                if (ex is System.Net.Http.HttpRequestException)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 建議: 檢查網路連線或伺服器狀態");
+                }
+                else if (ex is TaskCanceledException)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}]   → 建議: 請求逾時，可能網路較慢");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 關閉持久連線
+        /// </summary>
+        private async Task ClosePersistentConnection()
+        {
+            try
+            {
+                if (_isPersistentConnectionEstablished)
+                {
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] 🔌 正在關閉持久連線...");
+                    
+                    // 發送斷線通知
+                    try
+                    {
+                        var disconnectData = new
+                        {
+                            requestID = $"DISCONNECT_{DateTime.Now:yyyyMMddHHmmss}",
+                            serviceName = "CONNECTION_TEST_COMMAND",
+                            timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                            devCode = txtDevCode?.Text ?? "KINSUS001",
+                            data = new[]
+                            {
+                                new { testType = "DISCONNECT", message = "持久連線正常關閉" }
+                            }
+                        };
+
+                        await _ddsService?.SendApiRequestAsync("/api/connection", disconnectData);
+                    }
+                    catch
+                    {
+                        // 忽略斷線通知失敗
+                    }
+
+                    _isPersistentConnectionEstablished = false;
+                    _connectionEstablishedTime = null;
+                    _connectionRetryCount = 0;
+                    
+                    AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ✅ 持久連線已關閉");
+                    UpdateStatus("持久連線已關閉");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendClientLog($"[{DateTime.Now:HH:mm:ss}] ❌ 關閉持久連線時發生錯誤: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// IoT 連接按鈕點擊事件
@@ -1902,11 +2239,10 @@ namespace KINSUS
             }
         }
         /// <summary>
-        /// 顯示安全性和效能狀態（增強版）
-        /// </summary>
+        /// 顯示安全性和效能狀態（增強版）        /// </summary>
         private void DisplaySecurityAndPerformanceStatus()
         {
-            AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔒 安全性狀態檢查:");
+            AppendServerLog($"[{DateTime.Now:HH:mm:ss}] 🔒 安全性控制狀態:");
             AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → API 金鑰驗證: ✅ 啟用");
             AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → IP 白名單控制: ✅ 啟用");
             AppendServerLog($"[{DateTime.Now:HH:mm:ss}]   → 請求簽章驗證: ✅ 啟用");

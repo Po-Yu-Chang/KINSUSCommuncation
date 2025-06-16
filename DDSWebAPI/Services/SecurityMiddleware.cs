@@ -45,11 +45,18 @@ namespace DDSWebAPI.Services
         /// 驗證 API 金鑰
         /// </summary>
         /// <param name="authorization">Authorization 標頭值</param>
+        /// <param name="isExistingConnection">是否為既有連線</param>
         /// <returns>驗證結果</returns>
-        public SecurityValidationResult ValidateApiKey(string authorization)
+        public SecurityValidationResult ValidateApiKey(string authorization, bool isExistingConnection = false)
         {
             // 如果未啟用 API 金鑰驗證，直接通過
             if (!EnableApiKeyValidation)
+            {
+                return new SecurityValidationResult { IsValid = true };
+            }
+
+            // 對於既有連線，如果沒有提供 Authorization 標頭，可以通過
+            if (isExistingConnection && string.IsNullOrEmpty(authorization))
             {
                 return new SecurityValidationResult { IsValid = true };
             }
